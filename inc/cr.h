@@ -14,7 +14,7 @@
 
 typedef struct
 {
-	float x, y, z;
+	float x, y, z, w;
 }vec3;
 
 typedef struct
