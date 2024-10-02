@@ -12,9 +12,18 @@
 
 #include <stddef.h>
 
+typedef enum
+{
+	RENDER_MODE_MESH,
+	RENDER_MODE_TRIANGLE_STRIP,
+}CR_RenderMode;
+
 typedef struct
 {
-	float x, y, z;
+	float x;
+	float y;
+	float z;
+	float w;
 }vec3;
 
 typedef struct
@@ -32,7 +41,7 @@ typedef struct
 bool InitCR(unsigned int width, unsigned int height, float fov, float nearPlane, float farPlane);
 void SetTimescale(float newScale);
 void SetRenderDestination(unsigned char *dest);
-unsigned char* RenderModel(vertex *model, size_t vertexCount, crTransform transform);
-unsigned char* RenderTriangleStrip(vertex *triangleStrip, size_t vertexCount, crTransform transform);
+unsigned char* RenderModel(vertex *model, size_t vertexCount, crTransform transform, CR_RenderMode renderMode);
+//unsigned char* RenderTriangleStrip(vertex *triangleStrip, size_t vertexCount, crTransform transform);
 
 #endif
