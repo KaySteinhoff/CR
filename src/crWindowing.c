@@ -19,6 +19,8 @@ unsigned int shouldWindowClose = 0;
 		windowHandle = hwnd;
 		switch(msg)
 		{
+			case WM_ERASEBKGND:
+				return 1;
 			case WM_CLOSE:
 				shouldWindowClose = 1;
 				break;
