@@ -1,10 +1,10 @@
+// THIS FILE ISN'T NEEDED TO RENDER MESHES
+
 #include <crWindowing.h>
 
 unsigned int shouldWindowClose = 0;
 
 #if defined(__unix__)
-//	#include <X11/Xlib.h>
-
 	Display *display;
 	Window window;
 	Atom wmDeleteMessage;

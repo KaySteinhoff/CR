@@ -1,6 +1,8 @@
 #ifndef CR_IMAGING_H_
 #define CR_IMAGING_H_
 
+// THIS FILE ISN'T NEEDED TO RENDER MESHES
+
 typedef struct
 {
 #if defined(__WIN32)

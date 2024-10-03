@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include <stdio.h>
 
 #define USE_MATH_DEFINES
 
@@ -11,14 +10,15 @@ typedef struct
 	float m[4][4];
 }mat4x4;
 
+/* Currently global variables. Will be reworked to work be handled in some struct */
 mat4x4 matProj = { 0 };
 unsigned char *screen = NULL;
 float *zbuffer = NULL;
 unsigned int screenWidth = 0;
 unsigned int screenHeight = 0;
-unsigned int pixelCount = 0;
-float totalTime = 0, timescale = 1;
+CR_RENDER_BUFFER_TYPE bufferType;
 
+/* Custom linear functions to stay independent */
 vec3 vec3_vec3_add(vec3 a, vec3 b)
 {
 	return (vec3) { .x = a.x+b.x, .y = a.y+b.y, .z = a.z+b.z, .w = 1.0f };
@@ -208,12 +208,12 @@ mat4x4 MatrixInverse(mat4x4 m)
 	return matrix;
 }
 
-bool InitCR(unsigned int width, unsigned int height, float fov, float nearPlane, float farPlane)
+bool InitCR(unsigned int width, unsigned int height, CR_RENDER_BUFFER_TYPE buffType, float fov, float nearPlane, float farPlane)
 {
-	pixelCount = width*height;
-	zbuffer = malloc(pixelCount*sizeof(float));
+	zbuffer = malloc(width*height*sizeof(float));
 	if(!zbuffer)
 		return false;
+	bufferType = buffType; // Prime example why global variables suck ass, but works for now and is no big deal to rework
 	screenWidth = width;
 	screenHeight = height;
 
@@ -230,11 +230,6 @@ bool InitCR(unsigned int width, unsigned int height, float fov, float nearPlane,
 	return true;
 }
 
-void SetTimescale(float newScale)
-{
-	timescale = newScale;
-}
-
 void SetRenderDestination(unsigned char *dest)
 {
 	screen = dest;
@@ -245,11 +240,12 @@ void PutPixel(unsigned int x, unsigned int y, unsigned char r, unsigned char g, 
 	if(x < 0 || x > screenWidth-1 || y < 0 || y > screenHeight-1)
 		return;
 
-	int offset = (x+y*screenWidth)<<2;
+	int offset = (x+y*screenWidth)*(bufferType == CR_RGBA ? 4 : 3);
 	screen[offset] = r;
 	screen[offset + 1] = g;
 	screen[offset + 2] = b;
-	screen[offset + 3] = a;
+	if(bufferType == CR_RGBA)
+		screen[offset + 3] = a;
 }
 
 void DrawLineH(int x0, int y0, int x1, int y1)
@@ -324,6 +320,7 @@ void DrawLineV(int x0, int y0, int x1, int y1)
 	}
 }
 
+/* The renderer uses his own draw function to stay independent from what ever library you used to create the image */
 void DrawLine(int x0, int y0, int x1, int y1)
 {
 	if(abs(x1-x0)>abs(y1-y0))
@@ -374,7 +371,7 @@ void SwapVecs(vec3 *a, vec3 *b)
 	b->w = tmp;
 }
 
-/* Blatantly stolen from OneLoneCoders olcConsoleGameEngine */
+/* Blatantly stolen from OneLoneCoders olcConsoleGameEngine. Needs to be reworked(soon!) */
 void AddTriToZBuffer(vec3 p1, vec3 p2, vec3 p3)
 {
 	if(p2.y < p1.y)
@@ -498,15 +495,6 @@ void AddTriToZBuffer(vec3 p1, vec3 p2, vec3 p3)
 
 unsigned char* RenderMesh(vertex *model, size_t vertexCount, crTransform transform, mat4x4 matModel, mat4x4 matView)
 {
-	transform.rotation.x = transform.rotation.z * M_PI / 180.0;
-	transform.rotation.y = transform.rotation.z * M_PI / 180.0;
-	transform.rotation.z = transform.rotation.z * M_PI / 180.0;
-
-	mat4x4 matRot = CreateYRotationMatrix(transform.rotation.y), matRotTMP = CreateXRotationMatrix(transform.rotation.x);
-	matRot = mat4x4_mat4x4_mul(matRot, matRotTMP);
-	matRotTMP = CreateZRotationMatrix(transform.rotation.z);
-	matRot = mat4x4_mat4x4_mul(matRot, matRotTMP);
-
 	for(size_t i = 0; i < vertexCount; i += 3)
 	{
 		vec3 t1 = TransformVertex(model[i], transform, matModel, matView);
@@ -528,6 +516,7 @@ unsigned char* RenderMesh(vertex *model, size_t vertexCount, crTransform transfo
 
 		AddTriToZBuffer(p1, p2, p3);
 
+		// Was used for debug purposes, not needed right now.
 /*		DrawLine((int)p1.x, (int)p1.y, (int)p2.x, (int)p2.y);
 		DrawLine((int)p1.x, (int)p1.y, (int)p3.x, (int)p3.y);
 		DrawLine((int)p3.x, (int)p3.y, (int)p2.x, (int)p2.y);*/
@@ -536,6 +525,7 @@ unsigned char* RenderMesh(vertex *model, size_t vertexCount, crTransform transfo
 	return screen;
 }
 
+/* Out of order: Triangle strips don't work at the moment due to the fact that normals are calculated using the face which could be solved using passed down normals but I've got textures to work on for now */
 unsigned char* RenderTriangleStrip(vertex *model, size_t vertexCount, crTransform transform, mat4x4 matModel, mat4x4 matView)
 {
 	for(size_t i = 2; i < vertexCount-2; ++i)
@@ -557,9 +547,12 @@ unsigned char* RenderTriangleStrip(vertex *model, size_t vertexCount, crTransfor
 		vec3 p2 = ProjectVertex(t2);
 		vec3 p3 = ProjectVertex(t3);
 
-		DrawLine((int)p1.x, (int)p1.y, (int)p2.x, (int)p2.y);
+		AddTriToZBuffer(p1, p2, p3);
+
+		// Was used for debug purposes, not needed right now.
+/*		DrawLine((int)p1.x, (int)p1.y, (int)p2.x, (int)p2.y);
 		DrawLine((int)p1.x, (int)p1.y, (int)p3.x, (int)p3.y);
-		DrawLine((int)p3.x, (int)p3.y, (int)p2.x, (int)p2.y);
+		DrawLine((int)p3.x, (int)p3.y, (int)p2.x, (int)p2.y);*/
 	}
 
 	return screen;
@@ -586,14 +579,10 @@ unsigned char* RenderModel(vertex *model, size_t vertexCount, crTransform transf
 			return RenderMesh(model, vertexCount, transform, matRot, matView);
 			break;
 		case RENDER_MODE_TRIANGLE_STRIP:
-			return RenderTriangleStrip(model, vertexCount, transform, matRot, matView);
-			break;
+			/* Fall through. Reason: see RenderTriangleStrip comment */
+//			return RenderTriangleStrip(model, vertexCount, transform, matRot, matView);
+//			break;
 		default:
-#if defined(__unix__)
-			printf("Render mode %d doesn't exist or isn't suported!\n", renderMode);
-#elif defined(__WIN32)
-			MessageBox(NULL, "Unknown render mode!", "Render mode error", MB_OK | MB_ICONEXCLAMATION);
-#endif
 			break;
 	}
 
@@ -602,5 +591,10 @@ unsigned char* RenderModel(vertex *model, size_t vertexCount, crTransform transf
 
 void CRClearDepthBuffer(void)
 {
-	memset(zbuffer, 0, pixelCount << 2);
+	memset(zbuffer, 0, screenWidth*screenHeight*(bufferType == CR_RGBA ? 4 : 3));
+}
+
+void CleanupCR(void)
+{
+	free(zbuffer);
 }

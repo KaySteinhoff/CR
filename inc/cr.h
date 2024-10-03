@@ -18,6 +18,12 @@ typedef enum
 	RENDER_MODE_TRIANGLE_STRIP,
 }CR_RenderMode;
 
+typedef enum
+{
+	CR_RGB,
+	CR_RGBA,
+}CR_RENDER_BUFFER_TYPE;
+
 typedef struct
 {
 	float x;
@@ -38,10 +44,11 @@ typedef struct
 	vec3 scale;
 }crTransform;
 
-bool InitCR(unsigned int width, unsigned int height, float fov, float nearPlane, float farPlane);
+bool InitCR(unsigned int width, unsigned int height, CR_RENDER_BUFFER_TYPE buffType, float fov, float nearPlane, float farPlane);
 void SetTimescale(float newScale);
 void SetRenderDestination(unsigned char *dest);
 unsigned char* RenderModel(vertex *model, size_t vertexCount, crTransform transform, CR_RenderMode renderMode);
 void CRClearDepthBuffer(void);
+void CleanupCR(void);
 
 #endif

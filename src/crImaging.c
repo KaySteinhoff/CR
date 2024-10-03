@@ -1,3 +1,5 @@
+// THIS FILE ISN'T NEEDED TO RENDER MESHES
+
 #if defined(__unix__)
 	#include <X11/Xlib.h>
 	#include <stdio.h>
