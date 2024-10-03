@@ -76,7 +76,7 @@ void freeRenderImage(CRImage image)
 	XFree(image.xImg->obdata);
 	XFree(image.xImg);
 #elif defined(__WIN32)
-	free(image.data);
+	DeleteObject(image.hBmp);
 #endif
 	image.data = NULL;
 }
