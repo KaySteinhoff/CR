@@ -13,6 +13,7 @@ typedef struct
 
 mat4x4 matProj = { 0 };
 unsigned char *screen = NULL;
+float *zbuffer = NULL;
 unsigned int screenWidth = 0;
 unsigned int screenHeight = 0;
 unsigned int pixelCount = 0;
@@ -72,10 +73,10 @@ vec3 vec3_cross(vec3 a, vec3 b)
 vec3 mat4x4_vec3_mul(vec3 v, mat4x4 m)
 {
 	vec3 o = { 0 };
-	o.x = (v.x * m.m[0][0] + v.y * m.m[1][0] + v.z * m.m[2][0]) + v.w * m.m[3][0];
-	o.y = (v.x * m.m[0][1] + v.y * m.m[1][1] + v.z * m.m[2][1]) + v.w * m.m[3][1];
-	o.z = (v.x * m.m[0][2] + v.y * m.m[1][2] + v.z * m.m[2][2]) + v.w * m.m[3][2];
-	o.w = (v.x * m.m[0][3] + v.y * m.m[1][3] + v.z * m.m[2][3]) + v.w * m.m[3][3];
+	o.x = v.x * m.m[0][0] + v.y * m.m[1][0] + v.z * m.m[2][0] + v.w * m.m[3][0];
+	o.y = v.x * m.m[0][1] + v.y * m.m[1][1] + v.z * m.m[2][1] + v.w * m.m[3][1];
+	o.z = v.x * m.m[0][2] + v.y * m.m[1][2] + v.z * m.m[2][2] + v.w * m.m[3][2];
+	o.w = v.x * m.m[0][3] + v.y * m.m[1][3] + v.z * m.m[2][3] + v.w * m.m[3][3];
 
 	return o;
 }
@@ -210,6 +211,9 @@ mat4x4 MatrixInverse(mat4x4 m)
 bool InitCR(unsigned int width, unsigned int height, float fov, float nearPlane, float farPlane)
 {
 	pixelCount = width*height;
+	zbuffer = malloc(pixelCount*sizeof(float));
+	if(!zbuffer)
+		return false;
 	screenWidth = width;
 	screenHeight = height;
 
@@ -331,10 +335,12 @@ void DrawLine(int x0, int y0, int x1, int y1)
 vec3 ProjectVertex(vec3 vecView)
 {
 	vec3 vecProj = mat4x4_vec3_mul(vecView, matProj);
+	float w = vecProj.w;
 	vec3 vecScreen = vec3_scale(vecProj, 1.0/vecProj.w);
 
-	vecScreen.x = (vecScreen.x+1)*0.5*screenWidth;
-	vecScreen.y = (vecScreen.y+1)*0.5*screenHeight;
+	vecScreen.x = (int)((vecScreen.x+1)*screenWidth)>>1;
+	vecScreen.y = (int)((vecScreen.y+1)*screenHeight)>>1;
+	vecScreen.w = 1.0/w;
 
 	return vecScreen;
 }
@@ -347,6 +353,147 @@ vec3 TransformVertex(vertex v, crTransform transform, mat4x4 matModel, mat4x4 ma
 	vecTransf.z += transform.position.z;
 
 	return mat4x4_vec3_mul(vecTransf, matView);
+}
+
+void SwapVecs(vec3 *a, vec3 *b)
+{
+	float tmp = a->x;
+	a->x = b->x;
+	b->x = tmp;
+
+	tmp = a->y;
+	a->y = b->y;
+	b->y = tmp;
+
+	tmp = a->z;
+	a->z = b->z;
+	b->z = tmp;
+
+	tmp = a->w;
+	a->w = b->w;
+	b->w = tmp;
+}
+
+/* Blatantly stolen from OneLoneCoders olcConsoleGameEngine */
+void AddTriToZBuffer(vec3 p1, vec3 p2, vec3 p3)
+{
+	if(p2.y < p1.y)
+		SwapVecs(&p1, &p2);
+	if(p3.y < p1.y)
+		SwapVecs(&p1, &p3);
+	if(p3.y < p2.y)
+		SwapVecs(&p2, &p3);
+
+	int dx1 = p2.x-p1.x;
+	int dy1 = p2.y-p1.y;
+
+	int dx2 = p3.x-p1.x;
+	int dy2 = p3.y-p1.y;
+
+	float dw1 = p2.w-p1.w;
+	float dw2 = p3.w-p1.w;
+
+	float dax_step = 0, dbx_step = 0, dw1_step = 0, dw2_step = 0;
+	float d_w;
+
+	if(dy1)
+	{
+		dax_step = dx1/(float)abs(dy1);
+		dw1_step = dw1/(float)abs(dy1);
+	}
+	if(dy2)
+	{
+		dbx_step = dx2/(float)abs(dy2);
+		dw2_step = dw2/(float)abs(dy2);
+	}
+
+	if(dy1)
+	{
+		for(int i = p1.y; i <= p2.y; ++i)
+		{
+			int ax = p1.x + (float)(i - p1.y) * dax_step;
+			int bx = p1.x + (float)(i - p1.y) * dbx_step;
+
+			float d_sw = p1.w + (float)(i-p1.y) * dw1_step;
+			float d_ew = p1.w + (float)(i-p1.y) * dw2_step;
+
+			if(ax > bx)
+			{
+				float tmp = ax;
+				ax = bx;
+				bx = tmp;
+
+				tmp = d_sw;
+				d_sw = d_ew;
+				d_ew = tmp;
+			}
+
+			d_w = d_sw;
+			float tstep = 1.0/(float)(bx-ax);
+			float t = 0;
+
+			for(int j = ax; j < bx; ++j)
+			{
+				d_w = (1.0 - t) * d_sw + t * d_ew;
+				int offset = i*screenWidth+j;
+				if(d_w > zbuffer[offset])
+				{
+					zbuffer[offset] = d_w;
+					PutPixel(j, i, d_w*255, d_w*255, d_w*255, 255);
+				}
+				t += tstep;
+			}
+		}
+	}
+
+	dy1 = p3.y-p2.y;
+	dx1 = p3.x-p2.x;
+	dw1 = p3.w-p2.w;
+
+	if(dy1)
+	{
+		dax_step = dx1/(float)abs(dy1);
+		dw1_step = dw1/(float)abs(dy1);
+	}
+	if(dy2) dbx_step = dx2/(float)abs(dy2);
+
+	if(dy1)
+	{
+		for(int i = p2.y; i < p3.y; ++i)
+		{
+			int ax = p2.x + (float)(i-p2.y) * dax_step;
+			int bx = p1.x + (float)(i - p1.y) * dbx_step;
+
+			float d_sw = p2.w + (float)(i - p2.y) * dw1_step;
+			float d_ew = p1.w + (float)(i - p1.y) * dw2_step;
+
+			if(ax > bx)
+			{
+				float tmp = ax;
+				ax = bx;
+				bx = tmp;
+
+				tmp = d_sw;
+				d_sw = d_ew;
+				d_ew = tmp;
+			}
+
+			d_w = d_sw;
+			float tstep = 1.0/(float)(bx-ax);
+			float t = 0;
+			for(int j = ax; j < bx; ++j)
+			{
+				d_w = (1-t)*d_sw+t*d_ew;
+				int offset = i*screenWidth+j;
+				if(d_w > zbuffer[offset])
+				{
+					zbuffer[offset] = d_w;
+					PutPixel(j, i, d_w*255, d_w*255, d_w*255, 255);
+				}
+				t += tstep;
+			}
+		}
+	}
 }
 
 unsigned char* RenderMesh(vertex *model, size_t vertexCount, crTransform transform, mat4x4 matModel, mat4x4 matView)
@@ -379,9 +526,11 @@ unsigned char* RenderMesh(vertex *model, size_t vertexCount, crTransform transfo
 		vec3 p2 = ProjectVertex(t2);
 		vec3 p3 = ProjectVertex(t3);
 
-		DrawLine((int)p1.x, (int)p1.y, (int)p2.x, (int)p2.y);
+		AddTriToZBuffer(p1, p2, p3);
+
+/*		DrawLine((int)p1.x, (int)p1.y, (int)p2.x, (int)p2.y);
 		DrawLine((int)p1.x, (int)p1.y, (int)p3.x, (int)p3.y);
-		DrawLine((int)p3.x, (int)p3.y, (int)p2.x, (int)p2.y);
+		DrawLine((int)p3.x, (int)p3.y, (int)p2.x, (int)p2.y);*/
 	}
 
 	return screen;
@@ -423,7 +572,7 @@ unsigned char* RenderModel(vertex *model, size_t vertexCount, crTransform transf
 	transform.rotation.z = transform.rotation.z * M_PI / 180.0;
 
 	mat4x4 matRot = CreateXRotationMatrix(transform.rotation.x);
-	mat4x4 matRotTMP = CreateZRotationMatrix(transform.rotation.y);
+	mat4x4 matRotTMP = CreateYRotationMatrix(transform.rotation.y);
 	matRot = mat4x4_mat4x4_mul(matRot, matRotTMP);
 	matRotTMP = CreateZRotationMatrix(transform.rotation.z);
 	matRot = mat4x4_mat4x4_mul(matRot, matRotTMP);
@@ -449,4 +598,9 @@ unsigned char* RenderModel(vertex *model, size_t vertexCount, crTransform transf
 	}
 
 	return NULL;
+}
+
+void CRClearDepthBuffer(void)
+{
+	memset(zbuffer, 0, pixelCount << 2);
 }

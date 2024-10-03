@@ -98,7 +98,7 @@ int main(int argc, char **argv)
 	SetRenderDestination(image.data);
 	start = clock();
 	crTransform transform = {
-		.position = { .x = 0, .y = 0, .z = 9},
+		.position = { .x = 0, .y = 0, .z = 3},
 		.rotation = { 0 },
 		.scale = { .x = 1, .y = 1, .z = 1 }
 	};
@@ -109,12 +109,18 @@ int main(int argc, char **argv)
 		end = clock();
 		if(end-start < CLOCKS_PER_SEC * (1.0/30.0)) continue;
 		float elapsed = (float)(end-start)/CLOCKS_PER_SEC;
-		transform.rotation.x += elapsed*50;
+//		transform.rotation.x += elapsed*50;
 		transform.rotation.y += elapsed*50;
-		transform.rotation.z += elapsed*50;
+//		transform.rotation.z += elapsed*50;
 		RenderModel(model, 36, transform, RENDER_MODE_MESH);
+		transform.position.x = 1;
+		transform.position.y = 0.5;
+		RenderModel(model, 36, transform, RENDER_MODE_MESH);
+		transform.position.x = 0;
+		transform.position.y = 0;
 		start = end;
 		DrawRenderImage(image, 0, 0);
+		CRClearDepthBuffer();
 	}
 
 	freeRenderImage(image);

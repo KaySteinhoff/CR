@@ -42,5 +42,6 @@ bool InitCR(unsigned int width, unsigned int height, float fov, float nearPlane,
 void SetTimescale(float newScale);
 void SetRenderDestination(unsigned char *dest);
 unsigned char* RenderModel(vertex *model, size_t vertexCount, crTransform transform, CR_RenderMode renderMode);
+void CRClearDepthBuffer(void);
 
 #endif
