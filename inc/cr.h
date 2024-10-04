@@ -12,6 +12,8 @@
 
 #include <stddef.h>
 
+typedef size_t (*CRFRAGMENTPROC)(int x, int y, float u, float v, float depth);
+
 typedef enum
 {
 	RENDER_MODE_MESH,
@@ -34,7 +36,15 @@ typedef struct
 
 typedef struct
 {
+	float x;
+	float y;
+	float w;
+}vec2;
+
+typedef struct
+{
 	vec3 position;
+	vec2 uv;
 }vertex;
 
 typedef struct
@@ -47,7 +57,7 @@ typedef struct
 bool InitCR(unsigned int width, unsigned int height, CR_RENDER_BUFFER_TYPE buffType, float fov, float nearPlane, float farPlane);
 void SetTimescale(float newScale);
 void SetRenderDestination(unsigned char *dest);
-unsigned char* RenderModel(vertex *model, size_t vertexCount, crTransform transform, CR_RenderMode renderMode);
+unsigned char* RenderModel(vertex *model, size_t vertexCount, crTransform transform, CR_RenderMode renderMode, CRFRAGMENTPROC fragmentProc);
 void CRClearDepthBuffer(void);
 void CleanupCR(void);
 

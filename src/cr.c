@@ -337,11 +337,12 @@ vec3 ProjectVertex(vec3 vecView)
 
 	vecScreen.x = (int)((vecScreen.x+1)*screenWidth)>>1;
 	vecScreen.y = (int)((vecScreen.y+1)*screenHeight)>>1;
-	vecScreen.w = 1.0/w;
+	vecScreen.w = w;
 
 	return vecScreen;
 }
 
+/* For some reason applying the translation using the matrix offsets the verticies from the mesh origin instead of the world origin. Applying them this way however works fine */
 vec3 TransformVertex(vertex v, crTransform transform, mat4x4 matModel, mat4x4 matView)
 {
 	vec3 vecTransf = mat4x4_vec3_mul(v.position, matModel);
@@ -352,7 +353,7 @@ vec3 TransformVertex(vertex v, crTransform transform, mat4x4 matModel, mat4x4 ma
 	return mat4x4_vec3_mul(vecTransf, matView);
 }
 
-void SwapVecs(vec3 *a, vec3 *b)
+void SwapVec3(vec3 *a, vec3 *b)
 {
 	float tmp = a->x;
 	a->x = b->x;
@@ -371,48 +372,96 @@ void SwapVecs(vec3 *a, vec3 *b)
 	b->w = tmp;
 }
 
-/* Blatantly stolen from OneLoneCoders olcConsoleGameEngine. Needs to be reworked(soon!) */
-void AddTriToZBuffer(vec3 p1, vec3 p2, vec3 p3)
+void SwapVec2(vec2 *a, vec2 *b)
 {
-	if(p2.y < p1.y)
-		SwapVecs(&p1, &p2);
-	if(p3.y < p1.y)
-		SwapVecs(&p1, &p3);
-	if(p3.y < p2.y)
-		SwapVecs(&p2, &p3);
+	float tmp = a->x;
+	a->x = b->x;
+	b->x = tmp;
 
-	int dx1 = p2.x-p1.x;
-	int dy1 = p2.y-p1.y;
+	tmp = a->y;
+	a->y = b->y;
+	b->y = tmp;
 
-	int dx2 = p3.x-p1.x;
-	int dy2 = p3.y-p1.y;
+	tmp = a->w;
+	a->w = b->w;
+	b->w = tmp;
+}
 
-	float dw1 = p2.w-p1.w;
-	float dw2 = p3.w-p1.w;
+/* Blatantly stolen from OneLoneCoders olcConsoleGameEngine. Needs to be reworked(soon!) */
+void RasterizeTriangle(vertex p1, vertex p2, vertex p3, CRFRAGMENTPROC fragmentProc)
+{
+	//Sort from "top" to "bottom"
+	if(p2.position.y < p1.position.y)
+	{
+		SwapVec2(&p1.uv, &p2.uv);
+		SwapVec3(&p1.position, &p2.position);
+	}
+	if(p3.position.y < p1.position.y)
+	{
+		SwapVec2(&p1.uv, &p3.uv);
+		SwapVec3(&p1.position, &p3.position);
+	}
+	if(p3.position.y < p2.position.y)
+	{
+		SwapVec2(&p2.uv, &p3.uv);
+		SwapVec3(&p2.position, &p3.position);
+	}
 
-	float dax_step = 0, dbx_step = 0, dw1_step = 0, dw2_step = 0;
-	float d_w;
+	int dx1 = p2.position.x-p1.position.x;
+	int dy1 = p2.position.y-p1.position.y;
+	float du1 = p2.uv.x - p1.uv.x;
+	float dv1 = p2.uv.y - p1.uv.y;
+
+	int dx2 = p3.position.x-p1.position.x;
+	int dy2 = p3.position.y-p1.position.y;
+	float du2 = p3.uv.x - p1.uv.x;
+	float dv2 = p3.uv.y - p1.uv.y;
+
+	float dw1 = p2.position.w-p1.position.w;
+	float dw2 = p3.position.w-p1.position.w;
+
+	float 	dax_step = 0, dbx_step = 0,
+			dw1_step = 0, dw2_step = 0,
+			du1_step = 0, dv1_step= 0,
+			du2_step = 0, dv2_step = 0;
+	float d_u, d_v, d_w;
 
 	if(dy1)
 	{
-		dax_step = dx1/(float)abs(dy1);
-		dw1_step = dw1/(float)abs(dy1);
+		float dy1Abs = (float)abs(dy1);
+		dax_step = dx1/dy1Abs;
+		dw1_step = dw1/dy1Abs;
+		du1_step = du1/dy1Abs;
+		dv1_step = dv1/dy1Abs;
 	}
 	if(dy2)
 	{
-		dbx_step = dx2/(float)abs(dy2);
-		dw2_step = dw2/(float)abs(dy2);
+		float dy2Abs = (float)abs(dy2);
+		dbx_step = dx2/dy2Abs;
+		dw2_step = dw2/dy2Abs;
+		du2_step = du2/dy2Abs;
+		dv2_step = dv2/dy2Abs;
 	}
 
 	if(dy1)
 	{
-		for(int i = p1.y; i <= p2.y; ++i)
+		for(int i = p1.position.y; i <= p2.position.y; ++i)
 		{
-			int ax = p1.x + (float)(i - p1.y) * dax_step;
-			int bx = p1.x + (float)(i - p1.y) * dbx_step;
+			float ydiff = (float)(i - p1.position.y);
+			int ax = p1.position.x + ydiff * dax_step;
+			int bx = p1.position.x + ydiff * dbx_step;
 
-			float d_sw = p1.w + (float)(i-p1.y) * dw1_step;
-			float d_ew = p1.w + (float)(i-p1.y) * dw2_step;
+			vec2 s = {
+				.x = p1.uv.x + ydiff * du1_step,
+				.y = p1.uv.y + ydiff * dv1_step,
+				.w = p1.position.w + ydiff * dw1_step
+			};
+
+			vec2 e = {
+				.x = p1.uv.x + ydiff * du2_step,
+				.y = p1.uv.y + ydiff * dv2_step,
+				.w = p1.position.w + ydiff * dw2_step
+			};
 
 			if(ax > bx)
 			{
@@ -420,49 +469,74 @@ void AddTriToZBuffer(vec3 p1, vec3 p2, vec3 p3)
 				ax = bx;
 				bx = tmp;
 
-				tmp = d_sw;
-				d_sw = d_ew;
-				d_ew = tmp;
+				SwapVec2(&s, &e);
 			}
 
-			d_w = d_sw;
+			d_u = s.x;
+			d_v = s.y;
+			d_w = s.w;
 			float tstep = 1.0/(float)(bx-ax);
 			float t = 0;
 
 			for(int j = ax; j < bx; ++j)
 			{
-				d_w = (1.0 - t) * d_sw + t * d_ew;
+				d_u = (1.0 - t) * s.x + t * e.x;
+				d_v = (1.0 - t) * s.y + t * e.y;
+				d_w = (1.0 - t) * s.w + t * e.w;
 				int offset = i*screenWidth+j;
 				if(d_w > zbuffer[offset])
 				{
 					zbuffer[offset] = d_w;
-					PutPixel(j, i, d_w*255, d_w*255, d_w*255, 255);
+					if(fragmentProc)
+					{
+						size_t cv = fragmentProc(j, i, d_u/d_w, d_v/d_w, d_w);
+						unsigned char *rgba = (unsigned char*)&cv;
+						PutPixel(j, i, rgba[0], rgba[1], rgba[2], rgba[3]);
+					}
+					else
+						PutPixel(j, i, 0, 0, 0, 255);
 				}
 				t += tstep;
 			}
 		}
 	}
 
-	dy1 = p3.y-p2.y;
-	dx1 = p3.x-p2.x;
-	dw1 = p3.w-p2.w;
+	dy1 = p3.position.y-p2.position.y;
+	dx1 = p3.position.x-p2.position.x;
+	du1 = p3.uv.x-p2.uv.x;
+	dv1 = p3.uv.y-p2.uv.y;
+	dw1 = p3.position.w-p2.position.w;
 
 	if(dy1)
 	{
-		dax_step = dx1/(float)abs(dy1);
-		dw1_step = dw1/(float)abs(dy1);
+		float dy1Abs = (float)abs(dy1);
+		dax_step = dx1/dy1Abs;
+		dw1_step = dw1/dy1Abs;
+		du1_step = du1/dy1Abs;
+		dv1_step = dv1/dy1Abs;
 	}
 	if(dy2) dbx_step = dx2/(float)abs(dy2);
 
 	if(dy1)
 	{
-		for(int i = p2.y; i < p3.y; ++i)
+		for(int i = p2.position.y; i < p3.position.y; ++i)
 		{
-			int ax = p2.x + (float)(i-p2.y) * dax_step;
-			int bx = p1.x + (float)(i - p1.y) * dbx_step;
+			float y1diff = (float)(i - p1.position.y);
+			float y2diff = (float)(i - p2.position.y);
+			int ax = p2.position.x + y2diff * dax_step;
+			int bx = p1.position.x + y1diff * dbx_step;
 
-			float d_sw = p2.w + (float)(i - p2.y) * dw1_step;
-			float d_ew = p1.w + (float)(i - p1.y) * dw2_step;
+			vec2 s = {
+				.x = p2.uv.x + y2diff * du1_step,
+				.y = p2.uv.y + y2diff * dv1_step,
+				.w = p2.position.w + y2diff * dw1_step
+			};
+
+			vec2 e = {
+				.x = p1.uv.x + y1diff * du2_step,
+				.y = p1.uv.y + y1diff * dv2_step,
+				.w = p1.position.w + y1diff * dw2_step
+			};
 
 			if(ax > bx)
 			{
@@ -470,22 +544,31 @@ void AddTriToZBuffer(vec3 p1, vec3 p2, vec3 p3)
 				ax = bx;
 				bx = tmp;
 
-				tmp = d_sw;
-				d_sw = d_ew;
-				d_ew = tmp;
+				SwapVec2(&s, &e);
 			}
 
-			d_w = d_sw;
+			d_u = s.x;
+			d_v = s.y;
+			d_w = s.w;
 			float tstep = 1.0/(float)(bx-ax);
 			float t = 0;
 			for(int j = ax; j < bx; ++j)
 			{
-				d_w = (1-t)*d_sw+t*d_ew;
+				d_u = (1.0 - t) * s.x + t * e.x;
+				d_v = (1.0 - t) * s.y + t * e.y;
+				d_w = (1.0 - t) * s.w + t * e.w;
 				int offset = i*screenWidth+j;
 				if(d_w > zbuffer[offset])
 				{
 					zbuffer[offset] = d_w;
-					PutPixel(j, i, d_w*255, d_w*255, d_w*255, 255);
+					if(fragmentProc)
+					{
+						size_t cv = fragmentProc(j, i, d_u/d_w, d_v/d_w, d_w);
+						unsigned char *rgba = (unsigned char*)&cv;
+						PutPixel(j, i, rgba[0], rgba[1], rgba[2], rgba[3]);
+					}
+					else
+						PutPixel(j, i, 0, 0, 0, 255);
 				}
 				t += tstep;
 			}
@@ -493,7 +576,7 @@ void AddTriToZBuffer(vec3 p1, vec3 p2, vec3 p3)
 	}
 }
 
-unsigned char* RenderMesh(vertex *model, size_t vertexCount, crTransform transform, mat4x4 matModel, mat4x4 matView)
+unsigned char* RenderMesh(vertex *model, size_t vertexCount, crTransform transform, mat4x4 matModel, mat4x4 matView, CRFRAGMENTPROC fragmentProc)
 {
 	for(size_t i = 0; i < vertexCount; i += 3)
 	{
@@ -510,11 +593,31 @@ unsigned char* RenderMesh(vertex *model, size_t vertexCount, crTransform transfo
 		if(vec3_dot(normal, camRay) >= 0)
 			continue;
 
-		vec3 p1 = ProjectVertex(t1);
-		vec3 p2 = ProjectVertex(t2);
-		vec3 p3 = ProjectVertex(t3);
+		vertex p1 = {
+			.position = ProjectVertex(t1),
+			.uv = model[i].uv
+		};
+		p1.uv.x /= p1.position.w;
+		p1.uv.y /= p1.position.w;
+		p1.position.w = 1.0/p1.position.w;
 
-		AddTriToZBuffer(p1, p2, p3);
+		vertex p2 = {
+			.position = ProjectVertex(t2),
+			.uv = model[i + 1].uv
+		};
+		p2.uv.x /= p2.position.w;
+		p2.uv.y /= p2.position.w;
+		p2.position.w = 1.0/p2.position.w;
+
+		vertex p3 = {
+			.position = ProjectVertex(t3),
+			.uv = model[i + 2].uv
+		};
+		p3.uv.x /= p3.position.w;
+		p3.uv.y /= p3.position.w;
+		p3.position.w = 1.0/p3.position.w;
+
+		RasterizeTriangle(p1, p2, p3, fragmentProc);
 
 		// Was used for debug purposes, not needed right now.
 /*		DrawLine((int)p1.x, (int)p1.y, (int)p2.x, (int)p2.y);
@@ -526,7 +629,7 @@ unsigned char* RenderMesh(vertex *model, size_t vertexCount, crTransform transfo
 }
 
 /* Out of order: Triangle strips don't work at the moment due to the fact that normals are calculated using the face which could be solved using passed down normals but I've got textures to work on for now */
-unsigned char* RenderTriangleStrip(vertex *model, size_t vertexCount, crTransform transform, mat4x4 matModel, mat4x4 matView)
+unsigned char* RenderTriangleStrip(vertex *model, size_t vertexCount, crTransform transform, mat4x4 matModel, mat4x4 matView, CRFRAGMENTPROC fragmentProc)
 {
 	for(size_t i = 2; i < vertexCount-2; ++i)
 	{
@@ -543,11 +646,20 @@ unsigned char* RenderTriangleStrip(vertex *model, size_t vertexCount, crTransfor
 		if(vec3_dot(normal, camRay) >= 0)
 			continue;
 
-		vec3 p1 = ProjectVertex(t1);
-		vec3 p2 = ProjectVertex(t2);
-		vec3 p3 = ProjectVertex(t3);
+		vertex p1 = {
+			.position = ProjectVertex(t1),
+			.uv = model[i].uv
+		};
+		vertex p2 = {
+			.position = ProjectVertex(t2),
+			.uv = model[i + 1].uv
+		};
+		vertex p3 = {
+			.position = ProjectVertex(t3),
+			.uv = model[i + 2].uv
+		};
 
-		AddTriToZBuffer(p1, p2, p3);
+		RasterizeTriangle(p1, p2, p3, fragmentProc);
 
 		// Was used for debug purposes, not needed right now.
 /*		DrawLine((int)p1.x, (int)p1.y, (int)p2.x, (int)p2.y);
@@ -558,7 +670,7 @@ unsigned char* RenderTriangleStrip(vertex *model, size_t vertexCount, crTransfor
 	return screen;
 }
 
-unsigned char* RenderModel(vertex *model, size_t vertexCount, crTransform transform, CR_RenderMode renderMode)
+unsigned char* RenderModel(vertex *model, size_t vertexCount, crTransform transform, CR_RenderMode renderMode, CRFRAGMENTPROC fragmentProc)
 {
 	transform.rotation.x = transform.rotation.x * M_PI / 180.0;
 	transform.rotation.y = transform.rotation.y * M_PI / 180.0;
@@ -576,7 +688,7 @@ unsigned char* RenderModel(vertex *model, size_t vertexCount, crTransform transf
 	switch(renderMode)
 	{
 		case RENDER_MODE_MESH:
-			return RenderMesh(model, vertexCount, transform, matRot, matView);
+			return RenderMesh(model, vertexCount, transform, matRot, matView, fragmentProc);
 			break;
 		case RENDER_MODE_TRIANGLE_STRIP:
 			/* Fall through. Reason: see RenderTriangleStrip comment */

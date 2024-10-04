@@ -11,53 +11,53 @@ static const int screenHeight = 600;
 
 vertex model[] = {
 	/* FRONT FACE */
-	{ .position = { .x = -0.5, .y = -0.5, .z = -0.5, .w = 1} },
-	{ .position = { .x =  0.5, .y =  0.5, .z = -0.5, .w = 1} },
-	{ .position = { .x =  0.5, .y = -0.5, .z = -0.5, .w = 1} },
+	{ .position = { .x = -0.5, .y = -0.5, .z = -0.5, .w = 1}, .uv = { .x = 0, .y = 0, .w = 0 } },
+	{ .position = { .x =  0.5, .y =  0.5, .z = -0.5, .w = 1}, .uv = { .x = 1, .y = 1, .w = 0 } },
+	{ .position = { .x =  0.5, .y = -0.5, .z = -0.5, .w = 1}, .uv = { .x = 1, .y = 0, .w = 0 } },
 
-	{ .position = { .x = -0.5, .y = -0.5, .z = -0.5, .w = 1} },
-	{ .position = { .x = -0.5, .y =  0.5, .z = -0.5, .w = 1} },
-	{ .position = { .x =  0.5, .y =  0.5, .z = -0.5, .w = 1} },
+	{ .position = { .x = -0.5, .y = -0.5, .z = -0.5, .w = 1}, .uv = { .x = 0, .y = 0, .w = 0 } },
+	{ .position = { .x = -0.5, .y =  0.5, .z = -0.5, .w = 1}, .uv = { .x = 0, .y = 1, .w = 0 } },
+	{ .position = { .x =  0.5, .y =  0.5, .z = -0.5, .w = 1}, .uv = { .x = 1, .y = 1, .w = 0 } },
 	/* LEFT FACE */
-	{ .position = { .x = -0.5, .y = -0.5, .z = -0.5, .w = 1} },
-	{ .position = { .x = -0.5, .y = -0.5, .z =  0.5, .w = 1} },
-	{ .position = { .x = -0.5, .y =  0.5, .z =  0.5, .w = 1} },
+	{ .position = { .x = -0.5, .y = -0.5, .z = -0.5, .w = 1}, .uv = { .x = 1, .y = 0, .w = 0 } },
+	{ .position = { .x = -0.5, .y = -0.5, .z =  0.5, .w = 1}, .uv = { .x = 0, .y = 0, .w = 0 } },
+	{ .position = { .x = -0.5, .y =  0.5, .z =  0.5, .w = 1}, .uv = { .x = 0, .y = 1, .w = 0 } },
 
-	{ .position = { .x = -0.5, .y = -0.5, .z = -0.5, .w = 1} },
-	{ .position = { .x = -0.5, .y =  0.5, .z =  0.5, .w = 1} },
-	{ .position = { .x = -0.5, .y =  0.5, .z = -0.5, .w = 1} },
+	{ .position = { .x = -0.5, .y = -0.5, .z = -0.5, .w = 1}, .uv = { .x = 1, .y = 0, .w = 0 } },
+	{ .position = { .x = -0.5, .y =  0.5, .z =  0.5, .w = 1}, .uv = { .x = 0, .y = 1, .w = 0 } },
+	{ .position = { .x = -0.5, .y =  0.5, .z = -0.5, .w = 1}, .uv = { .x = 1, .y = 1, .w = 0 } },
 	/* RIGHT FACE */
-	{ .position = { .x = 0.5, .y = -0.5, .z = -0.5, .w = 1} },
-	{ .position = { .x = 0.5, .y =  0.5, .z =  0.5, .w = 1} },
-	{ .position = { .x = 0.5, .y = -0.5, .z =  0.5, .w = 1} },
+	{ .position = { .x = 0.5, .y = -0.5, .z = -0.5, .w = 1}, .uv = { .x = 0, .y = 0, .w = 0 } },
+	{ .position = { .x = 0.5, .y =  0.5, .z =  0.5, .w = 1}, .uv = { .x = 1, .y = 1, .w = 0 } },
+	{ .position = { .x = 0.5, .y = -0.5, .z =  0.5, .w = 1}, .uv = { .x = 1, .y = 0, .w = 0 } },
 
-	{ .position = { .x = 0.5, .y = -0.5, .z = -0.5, .w = 1} },
-	{ .position = { .x = 0.5, .y =  0.5, .z = -0.5, .w = 1} },
-	{ .position = { .x = 0.5, .y =  0.5, .z =  0.5, .w = 1} },
+	{ .position = { .x = 0.5, .y = -0.5, .z = -0.5, .w = 1}, .uv = { .x = 0, .y = 0, .w = 0 } },
+	{ .position = { .x = 0.5, .y =  0.5, .z = -0.5, .w = 1}, .uv = { .x = 0, .y = 1, .w = 0 } },
+	{ .position = { .x = 0.5, .y =  0.5, .z =  0.5, .w = 1}, .uv = { .x = 1, .y = 1, .w = 0 } },
 	/* BOTTOM FACE */
-	{ .position = { .x = -0.5, .y = -0.5, .z = -0.5, .w = 1} },
-	{ .position = { .x =  0.5, .y = -0.5, .z = -0.5, .w = 1} },
-	{ .position = { .x =  0.5, .y = -0.5, .z =  0.5, .w = 1} },
+	{ .position = { .x = -0.5, .y = -0.5, .z = -0.5, .w = 1}, .uv = { .x = 0, .y = 1, .w = 0 } },
+	{ .position = { .x =  0.5, .y = -0.5, .z = -0.5, .w = 1}, .uv = { .x = 1, .y = 1, .w = 0 } },
+	{ .position = { .x =  0.5, .y = -0.5, .z =  0.5, .w = 1}, .uv = { .x = 1, .y = 0, .w = 0 } },
 
-	{ .position = { .x = -0.5, .y = -0.5, .z = -0.5, .w = 1} },
-	{ .position = { .x =  0.5, .y = -0.5, .z =  0.5, .w = 1} },
-	{ .position = { .x = -0.5, .y = -0.5, .z =  0.5, .w = 1} },
+	{ .position = { .x = -0.5, .y = -0.5, .z = -0.5, .w = 1}, .uv = { .x = 0, .y = 1, .w = 0 } },
+	{ .position = { .x =  0.5, .y = -0.5, .z =  0.5, .w = 1}, .uv = { .x = 1, .y = 0, .w = 0 } },
+	{ .position = { .x = -0.5, .y = -0.5, .z =  0.5, .w = 1}, .uv = { .x = 0, .y = 0, .w = 0 } },
 	/* TOP FACE */
-	{ .position = { .x = -0.5, .y = 0.5, .z = -0.5, .w = 1} },
-	{ .position = { .x =  0.5, .y = 0.5, .z =  0.5, .w = 1} },
-	{ .position = { .x =  0.5, .y = 0.5, .z = -0.5, .w = 1} },
+	{ .position = { .x = -0.5, .y = 0.5, .z = -0.5, .w = 1}, .uv = { .x = 0, .y = 0, .w = 0 } },
+	{ .position = { .x =  0.5, .y = 0.5, .z =  0.5, .w = 1}, .uv = { .x = 0, .y = 0, .w = 0 } },
+	{ .position = { .x =  0.5, .y = 0.5, .z = -0.5, .w = 1}, .uv = { .x = 0, .y = 0, .w = 0 } },
 
-	{ .position = { .x = -0.5, .y = 0.5, .z = -0.5, .w = 1} },
-	{ .position = { .x = -0.5, .y = 0.5, .z =  0.5, .w = 1} },
-	{ .position = { .x =  0.5, .y = 0.5, .z =  0.5, .w = 1} },
+	{ .position = { .x = -0.5, .y = 0.5, .z = -0.5, .w = 1}, .uv = { .x = 0, .y = 0, .w = 0 } },
+	{ .position = { .x = -0.5, .y = 0.5, .z =  0.5, .w = 1}, .uv = { .x = 0, .y = 0, .w = 0 } },
+	{ .position = { .x =  0.5, .y = 0.5, .z =  0.5, .w = 1}, .uv = { .x = 0, .y = 0, .w = 0 } },
 	/* BACK FACE */
-	{ .position = { .x = -0.5, .y = -0.5, .z = 0.5, .w = 1} },
-	{ .position = { .x =  0.5, .y = -0.5, .z = 0.5, .w = 1} },
-	{ .position = { .x =  0.5, .y =  0.5, .z = 0.5, .w = 1} },
+	{ .position = { .x = -0.5, .y = -0.5, .z = 0.5, .w = 1}, .uv = { .x = 1, .y = 0, .w = 0 } },
+	{ .position = { .x =  0.5, .y = -0.5, .z = 0.5, .w = 1}, .uv = { .x = 0, .y = 0, .w = 0 } },
+	{ .position = { .x =  0.5, .y =  0.5, .z = 0.5, .w = 1}, .uv = { .x = 0, .y = 1, .w = 0 } },
 
-	{ .position = { .x = -0.5, .y = -0.5, .z = 0.5, .w = 1} },
-	{ .position = { .x =  0.5, .y =  0.5, .z = 0.5, .w = 1} },
-	{ .position = { .x = -0.5, .y =  0.5, .z = 0.5, .w = 1} },
+	{ .position = { .x = -0.5, .y = -0.5, .z = 0.5, .w = 1}, .uv = { .x = 1, .y = 0, .w = 0 } },
+	{ .position = { .x =  0.5, .y =  0.5, .z = 0.5, .w = 1}, .uv = { .x = 0, .y = 1, .w = 0 } },
+	{ .position = { .x = -0.5, .y =  0.5, .z = 0.5, .w = 1}, .uv = { .x = 1, .y = 1, .w = 0 } },
 };
 
 /* Triangle strips don't work at the moment but I'm working on it ;) */
@@ -73,6 +73,30 @@ vertex cubeTriStrip[] = {
 	{ .position = { .x = 0, .y = 0, .z = 0} },
 	{ .position = { .x = 1, .y = 0, .z = 0} }
 };
+
+size_t simpleTex[8*8] = {
+	0xffff0000, 0xff00ff00, 0xff0000ff, 0xffffff00, 0xff00ffff, 0xffff00ff, 0xff00ffff, 0xffffffff, 
+	0xff00ff00, 0xff0000ff, 0xffffff00, 0xff00ffff, 0xffff00ff, 0xff00ffff, 0xffffffff, 0xffff0000,
+	0xff0000ff, 0xffffff00, 0xff00ffff, 0xffff00ff, 0xff00ffff, 0xffffffff, 0xffff0000, 0xff00ff00, 
+	0xffffff00, 0xff00ffff, 0xffff00ff, 0xff00ffff, 0xffffffff, 0xffff0000, 0xff00ff00, 0xff0000ff, 
+	0xff00ffff, 0xffff00ff, 0xff00ffff, 0xffffffff, 0xffff0000, 0xff00ff00, 0xff0000ff, 0xffffff00, 
+	0xffff00ff, 0xff00ffff, 0xffffffff, 0xffff0000, 0xff00ff00, 0xff0000ff, 0xffffff00, 0xff00ffff, 
+	0xff00ffff, 0xffffffff, 0xffff0000, 0xff00ff00, 0xff0000ff, 0xffffff00, 0xff00ffff, 0xffff00ff, 
+	0xffffffff, 0xffff0000, 0xff00ff00, 0xff0000ff, 0xffffff00, 0xff00ffff, 0xffff00ff, 0xff00ffff, 
+};
+
+size_t fragment(int x, int y, float u, float v, float w)
+{
+	int tx = 8*u;
+	int ty = 7*v;
+	size_t bc = simpleTex[tx+(ty<<3)];
+	unsigned char *rgba = (unsigned char*)&bc;
+	unsigned char brightness = w*255;
+	rgba[0] *= brightness;
+	rgba[1] *= brightness;
+	rgba[2] *= brightness;
+	return bc;
+}
 
 int main(int argc, char **argv)
 {
@@ -118,11 +142,11 @@ int main(int argc, char **argv)
 		float elapsed = (float)(end-start)/CLOCKS_PER_SEC;
 		transform.rotation.y += elapsed*50;
 
-		RenderModel(model, 36, transform, RENDER_MODE_MESH);
+		RenderModel(model, 36, transform, RENDER_MODE_MESH, fragment);
 
 		transform.position.x = 1;
 		transform.position.y = 0.5;
-		RenderModel(model, 36, transform, RENDER_MODE_MESH); // We can use the same mesh and just change the transform(similar to OpenGL)
+		RenderModel(model, 36, transform, RENDER_MODE_MESH, fragment); // We can use the same mesh and just change the transform(similar to OpenGL)
 
 		/* Of course don't forget to reset the transform */
 		transform.position.x = 0;

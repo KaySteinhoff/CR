@@ -55,19 +55,32 @@ int main(void)
 After successfully initializing and setting the destination a pointer/array to some vertex struct has to be created.<br>
 Currently a vertex only contains a position(vec3) but in the future it might hold more data.<br>
 
-This mesh data is then passed to the RenderModel function along with the number of elements, a crTransform struct containing information of the position, rotation and scalation of the mesh and the render mode.<br>
+This mesh data is then passed to the RenderModel function along with the number of elements, a crTransform struct containing information of the position, rotation and scalation of the mesh, the render mode and a function pointer to the fragment shading function.<br>
 Currently the only available render mode is RENDER_MODE_MESH as RENDER_MODE_TRIANGLE_STRIP was broken with the introduction of calculated normals(working on getting it running again).<br>
 ```C
 #include <stdio.h>
 #include <cr.h>
 
+size_t texture[9] = {
+	0xffff0000, 0xff00ff00, 0xff0000ff, 
+	0xff00ff00, 0xff0000ff, 0xffff0000, 
+	0xff0000ff, 0xffff0000, 0xff00ff00, 
+};
+
+size_t fragmentShader(int x, int y, float u, float v, float w)
+{
+	int tx = 3*u;
+	int ty = 2*v;
+	return texture[tx+ty*3];
+}
+
 int main(void)
 {
 	unsigned char renderTarget[32*32*4] = { 0 }; // In this example the render target is just a raw unsigned char pointer
 	vertex triangle[3] = {
-		{ .position={ .x = -0.5, .y = -0.5, .z = 0, .w = 1} }, // w always has to be set to 1 initialy
-		{ .position={ .x =  0.0, .y =  0.5, .z = 0, .w = 1} },
-		{ .position={ .x =  0.5, .y = -0.5, .z = 0, .w = 1} },
+		{ .position={ .x = -0.5, .y = -0.5, .z = 0, .w = 1}, .uv = { .x = 0.0, .y = 0.0 } }, // the positions w always has to be set to 1 initialy
+		{ .position={ .x =  0.0, .y =  0.5, .z = 0, .w = 1}, .uv = { .x = 0.5, .y = 1.0 } },
+		{ .position={ .x =  0.5, .y = -0.5, .z = 0, .w = 1}, .uv = { .x = 1.0, .y = 0.0 } },
 	};
 	crTransform triTransform = {
 		.position = { .x = 0, .y = 0, .z = 3},
@@ -92,7 +105,7 @@ int main(void)
 		/* render loop */
 
 		triTransform.rotation.y += elapsedTime;
-		RenderModel(triangle, 3, triTransform, RENDER_MODE_MESH);
+		RenderModel(triangle, 3, triTransform, RENDER_MODE_MESH, fragmentShader);
 
 		/* Display image... */
 		CRClearDepthBuffer(); // This doesn't have to be called after displaying the image but should be called before the next render loop, or at the start
