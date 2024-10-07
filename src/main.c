@@ -90,21 +90,7 @@ size_t fragment(int x, int y, float u, float v, float w)
 	int tx = 8*u;
 	int ty = 7*v;
 	size_t bc = simpleTex[tx+(ty<<3)];
-/*	if(w < 0)
-		return 0xffff0000;
-	else if(w > 1)
-		return 0xff00ff00;
-	size_t bc = 0xffffffff;
-	unsigned char *rgba = (unsigned char*)&bc;
-	unsigned char brightness = (1.0-w)*255;
-	rgba[0] *= brightness;
-	rgba[1] *= brightness;
-	rgba[2] *= brightness;*/
 	return bc;
-//	if(u < 0.05 || u > 0.95 || v < 0.05 || v > 0.95)
-//		return 0xffffffff;
-//	return 0xff000000;
-//	return 0xffff0000;
 }
 
 int main(int argc, char **argv)

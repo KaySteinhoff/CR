@@ -133,3 +133,8 @@ For Windows(in this folder setup):
 ```bash
 gcc src/*.c -I inc -mwindows -Wall -Werror -o cr.exe
 ```
+
+If you want to enable debug view you can define a DEBUG flag:
+```bash
+gcc src/*.c -DDEBUG -I inc -lX11 -lm -Wall -Werror -o cr.out
+```
