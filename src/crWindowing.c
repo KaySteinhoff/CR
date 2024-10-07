@@ -48,7 +48,7 @@ unsigned int InitCRWindow(void)
 	if(!display)
 		return 0;
 
-	wmDeleteMessage = XInternAtom(display, "WM_DELETE_MESSAGE", False);
+	wmDeleteMessage = XInternAtom(display, "WM_DELETE_WINDOW", False);
 	defaultScreen = DefaultScreen(display);
 
 	window = XCreateSimpleWindow(display, RootWindow(display, defaultScreen), 0, 0, 800, 600, 0, BlackPixel(display, defaultScreen), WhitePixel(display, defaultScreen));
@@ -131,7 +131,7 @@ unsigned int ShouldCRWindowClose(void)
 void CloseCRWindow(void)
 {
 #if defined(__unix__)
-	XMapWindow(display, 0);
+	XUnmapWindow(display, window);
 	XDestroyWindow(display, window);
 	XCloseDisplay(display);
 #elif defined(__WIN32)
