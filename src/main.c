@@ -75,27 +75,36 @@ vertex cubeTriStrip[] = {
 };
 
 size_t simpleTex[8*8] = {
-	0xffff0000, 0xff00ff00, 0xff0000ff, 0xffffff00, 0xff00ffff, 0xffff00ff, 0xff00ffff, 0xffffffff, 
+	0xffff0000, 0xff00ff00, 0xff0000ff, 0xffffff00, 0xff00ffff, 0xffff00ff, 0xff00ffff, 0xffffffff,
 	0xff00ff00, 0xff0000ff, 0xffffff00, 0xff00ffff, 0xffff00ff, 0xff00ffff, 0xffffffff, 0xffff0000,
-	0xff0000ff, 0xffffff00, 0xff00ffff, 0xffff00ff, 0xff00ffff, 0xffffffff, 0xffff0000, 0xff00ff00, 
-	0xffffff00, 0xff00ffff, 0xffff00ff, 0xff00ffff, 0xffffffff, 0xffff0000, 0xff00ff00, 0xff0000ff, 
-	0xff00ffff, 0xffff00ff, 0xff00ffff, 0xffffffff, 0xffff0000, 0xff00ff00, 0xff0000ff, 0xffffff00, 
-	0xffff00ff, 0xff00ffff, 0xffffffff, 0xffff0000, 0xff00ff00, 0xff0000ff, 0xffffff00, 0xff00ffff, 
-	0xff00ffff, 0xffffffff, 0xffff0000, 0xff00ff00, 0xff0000ff, 0xffffff00, 0xff00ffff, 0xffff00ff, 
-	0xffffffff, 0xffff0000, 0xff00ff00, 0xff0000ff, 0xffffff00, 0xff00ffff, 0xffff00ff, 0xff00ffff, 
+	0xff0000ff, 0xffffff00, 0xff00ffff, 0xffff00ff, 0xff00ffff, 0xffffffff, 0xffff0000, 0xff00ff00,
+	0xffffff00, 0xff00ffff, 0xffff00ff, 0xff00ffff, 0xffffffff, 0xffff0000, 0xff00ff00, 0xff0000ff,
+	0xff00ffff, 0xffff00ff, 0xff00ffff, 0xffffffff, 0xffff0000, 0xff00ff00, 0xff0000ff, 0xffffff00,
+	0xffff00ff, 0xff00ffff, 0xffffffff, 0xffff0000, 0xff00ff00, 0xff0000ff, 0xffffff00, 0xff00ffff,
+	0xff00ffff, 0xffffffff, 0xffff0000, 0xff00ff00, 0xff0000ff, 0xffffff00, 0xff00ffff, 0xffff00ff,
+	0xffffffff, 0xffff0000, 0xff00ff00, 0xff0000ff, 0xffffff00, 0xff00ffff, 0xffff00ff, 0xff00ffff,
 };
 
 size_t fragment(int x, int y, float u, float v, float w)
 {
-	int tx = 8*u;
-	int ty = 7*v;
-	size_t bc = simpleTex[tx+(ty<<3)];
+//	int tx = 8*u;
+//	int ty = 7*v;
+//	size_t bc = simpleTex[tx+(ty<<3)];
+/*	if(w < 0)
+		return 0xffff0000;
+	else if(w > 1)
+		return 0xff00ff00;
+	size_t bc = 0xffffffff;
 	unsigned char *rgba = (unsigned char*)&bc;
-	unsigned char brightness = w*255;
+	unsigned char brightness = (1.0-w)*255;
 	rgba[0] *= brightness;
 	rgba[1] *= brightness;
-	rgba[2] *= brightness;
-	return bc;
+	rgba[2] *= brightness;*/
+//	return bc;
+//	if(u < 0.05 || u > 0.95 || v < 0.05 || v > 0.95)
+//		return 0xffffffff;
+//	return 0xff000000;
+	return 0xffff0000;
 }
 
 int main(int argc, char **argv)
@@ -124,8 +133,8 @@ int main(int argc, char **argv)
 	SetRenderDestination(image.data);
 	start = clock();
 	crTransform transform = {
-		.position = { .x = 0, .y = 0, .z = 3},
-		.rotation = { 0 },
+		.position = { .x = 0, .y = 0, .z = 1.5},
+		.rotation = { .x = 0, .y = 45, .z =0 },
 		.scale = { .x = 1, .y = 1, .z = 1 }
 	};
 
@@ -139,18 +148,19 @@ int main(int argc, char **argv)
 		if(end-start < CLOCKS_PER_SEC * (1.0/30.0)) continue;
 
 		// Update transform and render image
-		float elapsed = (float)(end-start)/CLOCKS_PER_SEC;
-		transform.rotation.y += elapsed*50;
+//		float elapsed = (float)(end-start)/CLOCKS_PER_SEC;
+//		transform.rotation.y += elapsed*50;
+//		transform.position.y -= elapsed*0.5;
 
 		RenderModel(model, 36, transform, RENDER_MODE_MESH, fragment);
 
-		transform.position.x = 1;
-		transform.position.y = 0.5;
-		RenderModel(model, 36, transform, RENDER_MODE_MESH, fragment); // We can use the same mesh and just change the transform(similar to OpenGL)
+//		transform.position.x = 1;
+//		transform.position.y = 0.5;
+//		RenderModel(model, 36, transform, RENDER_MODE_MESH, fragment); // We can use the same mesh and just change the transform(similar to OpenGL)
 
 		/* Of course don't forget to reset the transform */
-		transform.position.x = 0;
-		transform.position.y = 0;
+//		transform.position.x = 0;
+//		transform.position.y = 0;
 
 		start = end;
 		DrawRenderImage(image, 0, 0);

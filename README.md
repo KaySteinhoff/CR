@@ -53,7 +53,7 @@ int main(void)
 ```
 
 After successfully initializing and setting the destination a pointer/array to some vertex struct has to be created.<br>
-Currently a vertex only contains a position(vec3) but in the future it might hold more data.<br>
+Currently a vertex contains a position(vec3) and the uv coordinates(vec2) but in the future it might hold more data.<br>
 
 This mesh data is then passed to the RenderModel function along with the number of elements, a crTransform struct containing information of the position, rotation and scalation of the mesh, the render mode and a function pointer to the fragment shading function.<br>
 Currently the only available render mode is RENDER_MODE_MESH as RENDER_MODE_TRIANGLE_STRIP was broken with the introduction of calculated normals(working on getting it running again).<br>

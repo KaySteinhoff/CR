@@ -1,4 +1,5 @@
 #include <cr.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
@@ -21,27 +22,27 @@ CR_RENDER_BUFFER_TYPE bufferType;
 /* Custom linear functions to stay independent */
 vec3 vec3_vec3_add(vec3 a, vec3 b)
 {
-	return (vec3) { .x = a.x+b.x, .y = a.y+b.y, .z = a.z+b.z, .w = 1.0f };
+	return (vec3) { .x = a.x+b.x, .y = a.y+b.y, .z = a.z+b.z, .w = a.w+b.w };
 }
 
 vec3 vec3_vec3_sub(vec3 a, vec3 b)
 {
-	return (vec3) { .x = a.x-b.x, .y = a.y-b.y, .z = a.z-b.z, .w = 1.0f };
+	return (vec3) { .x = a.x-b.x, .y = a.y-b.y, .z = a.z-b.z, .w = a.w-b.w };
 }
 
 vec3 vec3_vec3_mul(vec3 a, vec3 b)
 {
-	return (vec3) { .x = a.x*b.x, .y = a.y*b.y, .z = a.z*b.z, .w = 1.0f };
+	return (vec3) { .x = a.x*b.x, .y = a.y*b.y, .z = a.z*b.z, .w = a.w*b.w };
 }
 
 vec3 vec3_vec3_div(vec3 a, vec3 b)
 {
-	return (vec3) { .x = a.x/b.x, .y = a.y/b.y, .z = a.z/b.z, .w = 1.0f };
+	return (vec3) { .x = a.x/b.x, .y = a.y/b.y, .z = a.z/b.z, .w = a.w/b.w };
 }
 
 vec3 vec3_scale(vec3 a, float k)
 {
-	return (vec3) { .x = a.x*k, .y = a.y*k, .z = a.z*k, .w = 1.0f };
+	return (vec3) { .x = a.x*k, .y = a.y*k, .z = a.z*k, .w = a.w*k };
 }
 
 float vec3_dot(vec3 a, vec3 b)
@@ -329,28 +330,30 @@ void DrawLine(int x0, int y0, int x1, int y1)
 		DrawLineV(x0, y0, x1, y1);
 }
 
-vec3 ProjectVertex(vec3 vecView)
+vertex ProjectVertex(vertex v)
 {
-	vec3 vecProj = mat4x4_vec3_mul(vecView, matProj);
-	float w = vecProj.w;
-	vec3 vecScreen = vec3_scale(vecProj, 1.0/vecProj.w);
+	v.position = mat4x4_vec3_mul(v.position, matProj);
+	v.uv.x /= v.position.w;
+	v.uv.y /= v.position.w;
+	float w = 1.0/v.position.w;
+	v.position = vec3_scale(v.position, w);
 
-	vecScreen.x = (int)((vecScreen.x+1)*screenWidth)>>1;
-	vecScreen.y = (int)((vecScreen.y+1)*screenHeight)>>1;
-	vecScreen.w = w;
+	v.position.x = (int)((v.position.x+1)*screenWidth)>>1;
+	v.position.y = (int)((v.position.y+1)*screenHeight)>>1;
+	v.position.w = w;
 
-	return vecScreen;
+	return v;
 }
 
 /* For some reason applying the translation using the matrix offsets the verticies from the mesh origin instead of the world origin. Applying them this way however works fine */
-vec3 TransformVertex(vertex v, crTransform transform, mat4x4 matModel, mat4x4 matView)
+vec3 TransformVertex(vertex v, crTransform transform, mat4x4 matModel)
 {
 	vec3 vecTransf = mat4x4_vec3_mul(v.position, matModel);
 	vecTransf.x += transform.position.x;
 	vecTransf.y += transform.position.y;
 	vecTransf.z += transform.position.z;
 
-	return mat4x4_vec3_mul(vecTransf, matView);
+	return vecTransf;
 }
 
 void SwapVec3(vec3 *a, vec3 *b)
@@ -576,60 +579,266 @@ void RasterizeTriangle(vertex p1, vertex p2, vertex p3, CRFRAGMENTPROC fragmentP
 	}
 }
 
+vertex vertex_intersectPlane(vec3 plane, vec3 planeNormal, vertex start, vertex end)
+{
+	float planeDot = vec3_dot(planeNormal, plane);
+	float startDot = vec3_dot(start.position, planeNormal);
+	float endDot = vec3_dot(end.position, planeNormal);
+
+	float t = (planeDot - startDot) / (endDot - startDot);
+	vec3 dir = vec3_vec3_sub(end.position, start.position);
+	return (vertex) {
+		.position = vec3_vec3_add(start.position, vec3_scale(dir, t)),
+		.uv = {
+			.x = t * (end.uv.x - start.uv.x) + start.uv.x,
+			.y = t * (end.uv.y - start.uv.y) + start.uv.y
+		}
+	};
+}
+
+float PointPlaneDist(vec3 plane, vec3 planeNormal, vec3 point)
+{
+	return planeNormal.x * point.x + planeNormal.y * point.y + planeNormal.z * point.z - vec3_dot(planeNormal, plane);
+}
+
+int ClipTriangle(vec3 plane, vec3 planeNormal, vertex v1, vertex v2, vertex v3, vertex *output)
+{
+	vertex insidePoints[3] = { 0 };
+	vertex outsidePoints[3] = { 0 };
+
+	int insideCount = 0;
+	int outsideCount = 0;
+
+	float dist1 = PointPlaneDist(plane, planeNormal, v1.position);
+	float dist2 = PointPlaneDist(plane, planeNormal, v2.position);
+	float dist3 = PointPlaneDist(plane, planeNormal, v3.position);
+
+	if(dist1 >= 0)
+	{
+		insidePoints[insideCount] = v1;
+		insideCount++;
+	}
+	else
+	{
+		outsidePoints[outsideCount] = v1;
+		outsideCount++;
+	}
+
+	if(dist2 >= 0)
+	{
+		insidePoints[insideCount] = v2;
+		insideCount++;
+	}
+	else
+	{
+		outsidePoints[outsideCount] = v2;
+		outsideCount++;
+	}
+
+	if(dist3 >= 0)
+	{
+		insidePoints[insideCount] = v3;
+		insideCount++;
+	}
+	else
+	{
+		outsidePoints[outsideCount] = v3;
+		outsideCount++;
+	}
+
+	if(insideCount == 0)
+		return 0; // All points lie outside of the plane
+	if(insideCount == 3)
+	{
+		output[0] = v1;
+		output[1] = v2;
+		output[2] = v3;
+		return 1; // All points lie within the plane
+	}
+
+	// Now it gets interesting
+	if(insideCount == 1) // we only need to check the insideCount as it is imperative that outsideCount must be 2 in this case
+	{
+		output[0] = insidePoints[0];
+		output[1] = vertex_intersectPlane(plane, planeNormal, insidePoints[0], outsidePoints[0]);
+		output[2] = vertex_intersectPlane(plane, planeNormal, insidePoints[0], outsidePoints[1]);
+		return 1; // Two points are outside, thus "shrinking" the triangle is enough
+	}
+
+	if(insideCount == 2)
+	{
+		// The first triangle consists of two inside and one outside point
+		output[0] = insidePoints[0];
+		output[1] = insidePoints[1];
+		output[2] = vertex_intersectPlane(plane, planeNormal, insidePoints[0], outsidePoints[0]);
+
+		output[3] = insidePoints[1];
+		output[4] = output[2];
+		output[5] = vertex_intersectPlane(plane, planeNormal, insidePoints[1], outsidePoints[0]);
+
+		return 2; // We "split" the triangle into two
+	}
+
+	return 0; // Should never happen but if it does: skip
+}
+
+void RenderTriangle(vertex vert1, vertex vert2, vertex vert3, crTransform transform, mat4x4 matModel, mat4x4 matView, CRFRAGMENTPROC fragmentProc)
+{
+	vec3 t1 = TransformVertex(vert1, transform, matModel);
+	vec3 t2 = TransformVertex(vert2, transform, matModel);
+	vec3 t3 = TransformVertex(vert3, transform, matModel);
+
+	vec3 line1 = vec3_vec3_sub(t2, t1);
+	vec3 line2 = vec3_vec3_sub(t3, t1);
+
+	vec3 normal = vec3_normalize(vec3_cross(line1, line2));
+
+	vec3 camRay = vec3_vec3_sub(t1, (vec3){ 0 });
+	if(vec3_dot(normal, camRay) >= 0)
+		return;
+
+	vertex v1 = {
+		.position = mat4x4_vec3_mul(t1, matView),
+		.uv = vert1.uv
+	};
+	vertex v2 = {
+		.position = mat4x4_vec3_mul(t2, matView),
+		.uv = vert2.uv
+	};
+	vertex v3 = {
+		.position = mat4x4_vec3_mul(t3, matView),
+		.uv = vert3.uv
+	};
+
+	// The clipping algorithm uses a "rolling queue".
+	// This means that we use the efficency of an array and the pop and push features of a queue
+	// by keeping track of the head and tail index and looping back to index 0 when we reached the end.
+	// This of course limits us to some arbitrary max capacity but it's all we need and that good enough for me.
+	//
+	// Example: We have a capacity of 5 and two triangles at index 0 and 1.
+	// We "pop" the first triangle from the "queue" and set the head index to 1. (Step 1)
+	// When the triangle is split into two new ones we "push" them back onto the "queue" and set the tail index to 3 (Step 3)
+	// When we now "pop" the second triangle and push the two split ones we "loop back" while trying to push the last element to index 0 using modulo since we reached the maximum capacity(more representative of the last valid index)
+	// and set the tail index to 0, meaning now the head is set to 2 and the tail to 0. (Step 5)
+	// However because we use the modulo operation to access elements we can just add our element offset(or index) onto the head index, apply the modulo operation and get the correct result
+	//
+	// Steps:
+	// 1. [ T1 ,  T2 , NULL, NULL, NULL] headIndex = 0, tailIndex = 1
+	// 2. [NULL,  T2 , NULL, NULL, NULL] headIndex = 1, tailIndex = 1
+	// 3. [NULL,  T2 ,  T3 ,  T4 , NULL] headIndex = 1, tailIndex = 3
+	// 4. [NULL, NULL,  T3 ,  T4 , NULL] headIndex = 2, tailIndex = 3
+	// 5. [ T6 , NULL,  T3 ,  T4 ,  T5 ] headIndex = 2, tailIndex = 0
+	vertex clippedPoints[128] = { 0 };
+	size_t headIndex = 0;
+	int numClippedTriangles = ClipTriangle((vec3){ .x = 0, .y = 0, .z = 1.0 }, (vec3){ .x = 0, .y = 0, .z = 1.0 }, v1, v2, v3, clippedPoints);
+	size_t tailIndex = (numClippedTriangles*3)-1;
+	size_t queueLength = numClippedTriangles;
+
+	for(int i = 0; i < numClippedTriangles; ++i)
+	{
+		clippedPoints[i * 3] = ProjectVertex(clippedPoints[i * 3]);
+		clippedPoints[i * 3 + 1] = ProjectVertex(clippedPoints[i * 3 + 1]);
+		clippedPoints[i * 3 + 2] = ProjectVertex(clippedPoints[i * 3 + 2]);
+	}
+
+	//Bottom
+	for(int i = 0; i < queueLength; ++i)
+	{
+		queueLength -= 1;
+		numClippedTriangles = ClipTriangle(	(vec3){ .x = 0, .y = 0, .z = 0 }, (vec3){ .x = 0, .y = 1.0, .z = 0 },
+							clippedPoints[headIndex & 127], // Instead of the modulo operator '%' we use a binary and '&' to save the division which would otherwise occur during a modulo(idk if the compiler optimzes this case if you don't do it this way)
+							clippedPoints[(headIndex + 1) & 127],
+							clippedPoints[(headIndex + 2) & 127],
+							&clippedPoints[(tailIndex + 1) & 127]);
+		headIndex = (headIndex + 3) & 127;
+		tailIndex = (tailIndex + numClippedTriangles * 3) & 127;
+		queueLength += numClippedTriangles;
+	}
+/*
+	//Top
+	for(int i = 0; i < queueLength; ++i)
+	{
+		queueLength--;
+		numClippedTriangles = ClipTriangle(	(vec3){ .x = 0, .y = screenHeight-1, .z = 0.0 }, (vec3){ .x = 0, .y = -1, .z = 0 },
+							clippedPoints[headIndex & 127], // Instead of the modulo operator '%' we use a binary and '&' to save the division which would otherwise occur during a modulo(idk if the compiler optimzes this case if you don't do it this way)
+							clippedPoints[(headIndex + 1) & 127],
+							clippedPoints[(headIndex + 2) & 127],
+							&clippedPoints[(tailIndex + 1) & 127]);
+		headIndex = (headIndex + 3) & 127;
+		tailIndex = (tailIndex + numClippedTriangles * 3) & 127;
+		queueLength += numClippedTriangles;
+	}
+
+	//Right
+	for(int i = 0; i < queueLength; ++i)
+	{
+		queueLength--;
+		numClippedTriangles = ClipTriangle(	(vec3){ .x = 0, .y = 0, .z = 0.0 }, (vec3){ .x = 1, .y = 0, .z = 0 },
+							clippedPoints[headIndex & 127], // Instead of the modulo operator '%' we use a binary and '&' to save the division which would otherwise occur during a modulo(idk if the compiler optimzes this case if you don't do it this way)
+							clippedPoints[(headIndex + 1) & 127],
+							clippedPoints[(headIndex + 2) & 127],
+							&clippedPoints[(tailIndex + 1) & 127]);
+		headIndex = (headIndex + 3) & 127;
+		tailIndex = (tailIndex + numClippedTriangles * 3) & 127;
+		queueLength += numClippedTriangles;
+	}
+
+	//Left
+	for(int i = 0; i < queueLength; ++i)
+	{
+		queueLength--;
+		numClippedTriangles = ClipTriangle(	(vec3){ .x = screenWidth-1, .y = 0, .z = 0.0 }, (vec3){ .x = -1, .y = 0, .z = 0 },
+							clippedPoints[headIndex & 127], // Instead of the modulo operator '%' we use a binary and '&' to save the division which would otherwise occur during a modulo(idk if the compiler optimzes this case if you don't do it this way)
+							clippedPoints[(headIndex + 1) & 127],
+							clippedPoints[(headIndex + 2) & 127],
+							&clippedPoints[(tailIndex + 1) & 127]);
+		headIndex = (headIndex + 3) & 127;
+		tailIndex = (tailIndex + numClippedTriangles * 3) & 127;
+		queueLength += numClippedTriangles;
+	}
+*/
+	int length = 0;
+	if(tailIndex < headIndex)
+		length = 128-headIndex + tailIndex + 1;
+	else
+		length = tailIndex - headIndex + 1;
+	length /= 3;
+/*	if(queueLength != length)
+	{
+		printf("Length is: %ld expected: %d\n", queueLength, length);
+//		return;
+	}*/
+
+	for(int i = 0; i < queueLength; ++i)
+	{
+		vertex p1 = clippedPoints[(headIndex + i * 3) & 127];
+		vertex p2 = clippedPoints[(headIndex + i * 3 + 1) & 127];
+		vertex p3 = clippedPoints[(headIndex + i * 3 + 2) & 127];
+
+		RasterizeTriangle(p1, p2, p3, fragmentProc);
+
+		DrawLine(p1.position.x, p1.position.y, p2.position.x, p2.position.y);
+		DrawLine(p1.position.x, p1.position.y, p3.position.x, p3.position.y);
+		DrawLine(p3.position.x, p3.position.y, p2.position.x, p2.position.y);
+	}
+}
+
 unsigned char* RenderMesh(vertex *model, size_t vertexCount, crTransform transform, mat4x4 matModel, mat4x4 matView, CRFRAGMENTPROC fragmentProc)
 {
 	for(size_t i = 0; i < vertexCount; i += 3)
 	{
-		vec3 t1 = TransformVertex(model[i], transform, matModel, matView);
-		vec3 t2 = TransformVertex(model[i + 1], transform, matModel, matView);
-		vec3 t3 = TransformVertex(model[i + 2], transform, matModel, matView);
-
-		vec3 line1 = vec3_vec3_sub(t2, t1);
-		vec3 line2 = vec3_vec3_sub(t3, t1);
-
-		vec3 normal = vec3_normalize(vec3_cross(line1, line2));
-
-		vec3 camRay = vec3_vec3_sub(t1, (vec3){ 0 });
-		if(vec3_dot(normal, camRay) >= 0)
-			continue;
-
-		vertex p1 = {
-			.position = ProjectVertex(t1),
-			.uv = model[i].uv
-		};
-		p1.uv.x /= p1.position.w;
-		p1.uv.y /= p1.position.w;
-		p1.position.w = 1.0/p1.position.w;
-
-		vertex p2 = {
-			.position = ProjectVertex(t2),
-			.uv = model[i + 1].uv
-		};
-		p2.uv.x /= p2.position.w;
-		p2.uv.y /= p2.position.w;
-		p2.position.w = 1.0/p2.position.w;
-
-		vertex p3 = {
-			.position = ProjectVertex(t3),
-			.uv = model[i + 2].uv
-		};
-		p3.uv.x /= p3.position.w;
-		p3.uv.y /= p3.position.w;
-		p3.position.w = 1.0/p3.position.w;
-
-		RasterizeTriangle(p1, p2, p3, fragmentProc);
-
+		RenderTriangle(model[i], model[i + 1], model[i + 2], transform, matModel, matView, fragmentProc);
 		// Was used for debug purposes, not needed right now.
-/*		DrawLine((int)p1.x, (int)p1.y, (int)p2.x, (int)p2.y);
-		DrawLine((int)p1.x, (int)p1.y, (int)p3.x, (int)p3.y);
-		DrawLine((int)p3.x, (int)p3.y, (int)p2.x, (int)p2.y);*/
+	/*		DrawLine((int)p1.x, (int)p1.y, (int)p2.x, (int)p2.y);
+			DrawLine((int)p1.x, (int)p1.y, (int)p3.x, (int)p3.y);
+			DrawLine((int)p3.x, (int)p3.y, (int)p2.x, (int)p2.y);*/
 	}
 
 	return screen;
 }
 
 /* Out of order: Triangle strips don't work at the moment due to the fact that normals are calculated using the face which could be solved using passed down normals but I've got textures to work on for now */
-unsigned char* RenderTriangleStrip(vertex *model, size_t vertexCount, crTransform transform, mat4x4 matModel, mat4x4 matView, CRFRAGMENTPROC fragmentProc)
+/*unsigned char* RenderTriangleStrip(vertex *model, size_t vertexCount, crTransform transform, mat4x4 matModel, mat4x4 matView, CRFRAGMENTPROC fragmentProc)
 {
 	for(size_t i = 2; i < vertexCount-2; ++i)
 	{
@@ -662,14 +871,14 @@ unsigned char* RenderTriangleStrip(vertex *model, size_t vertexCount, crTransfor
 		RasterizeTriangle(p1, p2, p3, fragmentProc);
 
 		// Was used for debug purposes, not needed right now.
-/*		DrawLine((int)p1.x, (int)p1.y, (int)p2.x, (int)p2.y);
+		DrawLine((int)p1.x, (int)p1.y, (int)p2.x, (int)p2.y);
 		DrawLine((int)p1.x, (int)p1.y, (int)p3.x, (int)p3.y);
-		DrawLine((int)p3.x, (int)p3.y, (int)p2.x, (int)p2.y);*/
+		DrawLine((int)p3.x, (int)p3.y, (int)p2.x, (int)p2.y);
 	}
 
 	return screen;
 }
-
+*/
 unsigned char* RenderModel(vertex *model, size_t vertexCount, crTransform transform, CR_RenderMode renderMode, CRFRAGMENTPROC fragmentProc)
 {
 	transform.rotation.x = transform.rotation.x * M_PI / 180.0;
@@ -682,7 +891,7 @@ unsigned char* RenderModel(vertex *model, size_t vertexCount, crTransform transf
 	matRotTMP = CreateZRotationMatrix(transform.rotation.z);
 	matRot = mat4x4_mat4x4_mul(matRot, matRotTMP);
 
-	mat4x4 matView = CreatePointAtMatrix((vec3){ 0 }, (vec3) { .x = 0, .y = 0, .z = 1 }, (vec3){ .x = 0, .y = 1, .z = 0 });
+	mat4x4 matView = CreatePointAtMatrix((vec3){ 0 }, (vec3) { .x = 0, .y = 0, .z = 1.0 }, (vec3){ .x = 0, .y = 1, .z = 0 });
 	matView = MatrixInverse(matView);
 
 	switch(renderMode)
