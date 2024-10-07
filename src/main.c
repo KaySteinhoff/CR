@@ -119,7 +119,7 @@ int main(int argc, char **argv)
 	SetRenderDestination(image.data);
 	start = clock();
 	crTransform transform = {
-		.position = { .x = 0, .y = 0, .z = 3},
+		.position = { .x = 0, .y = 0, .z = 1.5},
 		.rotation = { .x = 45, .y = 30, .z =0 },
 		.scale = { .x = 1, .y = 1, .z = 1 }
 	};
@@ -136,7 +136,7 @@ int main(int argc, char **argv)
 		// Update transform and render image
 		float elapsed = (float)(end-start)/CLOCKS_PER_SEC;
 		transform.rotation.y += elapsed*50;
-//		transform.position.y += elapsed*0.5;
+		transform.position.y -= elapsed*0.5;
 
 		RenderModel(model, 36, transform, RENDER_MODE_MESH, fragment);
 

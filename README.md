@@ -119,9 +119,6 @@ int main(void)
 
 And that's it! Have fun with my barely functioning render lib!
 
-__*WARNING*__ <br>
-Clipping isn't fully implemented yet, due to some weird bug. The bug location is marked but I have no idea what is going wrong at this point in time.
-
 # Compile instructions(for gcc)
 
 For Linux(in this folder setup):

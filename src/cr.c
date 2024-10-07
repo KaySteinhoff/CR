@@ -676,8 +676,7 @@ int ClipTriangle(vec3 plane, vec3 planeNormal, vertex v1, vertex v2, vertex v3, 
 		output[4] = output[2];
 		output[5] = vertex_intersectPlane(plane, planeNormal, insidePoints[1], outsidePoints[0]);
 
-		return 1; // TODO: Figure out why the second triangle calculates wrong values
-//		return 2; // We "split" the triangle into two
+		return 2;
 	}
 
 	return 0; // Should never happen but if it does: skip
@@ -743,8 +742,9 @@ void RenderTriangle(vertex vert1, vertex vert2, vertex vert3, crTransform transf
 		clippedPoints[i * 3 + 2] = ProjectVertex(clippedPoints[i * 3 + 2]);
 	}
 
+	int iterations = queueLength;
 	//Top
-	for(int i = 0; i < queueLength; ++i)
+	for(int i = 0; i < iterations; ++i)
 	{
 		queueLength -= 1;
 		numClippedTriangles = ClipTriangle(	(vec3){ .x = 0, .y = 0, .z = 0 }, (vec3){ .x = 0, .y = 1.0, .z = 0 },
@@ -757,8 +757,9 @@ void RenderTriangle(vertex vert1, vertex vert2, vertex vert3, crTransform transf
 		queueLength += numClippedTriangles;
 	}
 
+	iterations = queueLength;
 	//Bottom
-	for(int i = 0; i < queueLength; ++i)
+	for(int i = 0; i < iterations; ++i)
 	{
 		queueLength -= 1;
 		numClippedTriangles = ClipTriangle(	(vec3){ .x = 0, .y = screenHeight-1, .z = 0 }, (vec3){ .x = 0, .y = -1.0, .z = 0 },
@@ -771,8 +772,9 @@ void RenderTriangle(vertex vert1, vertex vert2, vertex vert3, crTransform transf
 		queueLength += numClippedTriangles;
 	}
 
+	iterations = queueLength;
 	//Left
-	for(int i = 0; i < queueLength; ++i)
+	for(int i = 0; i < iterations; ++i)
 	{
 		queueLength -= 1;
 		numClippedTriangles = ClipTriangle(	(vec3){ .x = 0, .y = 0, .z = 0 }, (vec3){ .x = 1.0, .y = 0, .z = 0 },
@@ -785,8 +787,9 @@ void RenderTriangle(vertex vert1, vertex vert2, vertex vert3, crTransform transf
 		queueLength += numClippedTriangles;
 	}
 
+	iterations = queueLength;
 	//Right
-	for(int i = 0; i < queueLength; ++i)
+	for(int i = 0; i < iterations; ++i)
 	{
 		queueLength -= 1;
 		numClippedTriangles = ClipTriangle(	(vec3){ .x = screenWidth-1, .y = 0, .z = 0 }, (vec3){ .x = -1.0, .y = 0, .z = 0 },
@@ -818,13 +821,7 @@ void RenderTriangle(vertex vert1, vertex vert2, vertex vert3, crTransform transf
 unsigned char* RenderMesh(vertex *model, size_t vertexCount, crTransform transform, mat4x4 matModel, mat4x4 matView, CRFRAGMENTPROC fragmentProc)
 {
 	for(size_t i = 0; i < vertexCount; i += 3)
-	{
 		RenderTriangle(model[i], model[i + 1], model[i + 2], transform, matModel, matView, fragmentProc);
-		// Was used for debug purposes, not needed right now.
-	/*		DrawLine((int)p1.x, (int)p1.y, (int)p2.x, (int)p2.y);
-			DrawLine((int)p1.x, (int)p1.y, (int)p3.x, (int)p3.y);
-			DrawLine((int)p3.x, (int)p3.y, (int)p2.x, (int)p2.y);*/
-	}
 
 	return screen;
 }
