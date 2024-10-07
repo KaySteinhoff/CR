@@ -676,7 +676,8 @@ int ClipTriangle(vec3 plane, vec3 planeNormal, vertex v1, vertex v2, vertex v3, 
 		output[4] = output[2];
 		output[5] = vertex_intersectPlane(plane, planeNormal, insidePoints[1], outsidePoints[0]);
 
-		return 2; // We "split" the triangle into two
+		return 1; // TODO: Figure out why the second triangle calculates wrong values
+//		return 2; // We "split" the triangle into two
 	}
 
 	return 0; // Should never happen but if it does: skip
@@ -728,10 +729,11 @@ void RenderTriangle(vertex vert1, vertex vert2, vertex vert3, crTransform transf
 	// 3. [NULL,  T2 ,  T3 ,  T4 , NULL] headIndex = 1, tailIndex = 3
 	// 4. [NULL, NULL,  T3 ,  T4 , NULL] headIndex = 2, tailIndex = 3
 	// 5. [ T6 , NULL,  T3 ,  T4 ,  T5 ] headIndex = 2, tailIndex = 0
-	vertex clippedPoints[128] = { 0 };
+	vertex clippedPoints[128] = { 0 }; // There should never be move than 96 verticies(aka 32 triangles) but I threw on 32 more to have some padding and be able to use the '&' operator for modulo
 	size_t headIndex = 0;
 	int numClippedTriangles = ClipTriangle((vec3){ .x = 0, .y = 0, .z = 1.0 }, (vec3){ .x = 0, .y = 0, .z = 1.0 }, v1, v2, v3, clippedPoints);
 	size_t tailIndex = (numClippedTriangles*3)-1;
+	numClippedTriangles = tailIndex == -1 ? 0 : numClippedTriangles;
 	size_t queueLength = numClippedTriangles;
 
 	for(int i = 0; i < numClippedTriangles; ++i)
@@ -741,26 +743,12 @@ void RenderTriangle(vertex vert1, vertex vert2, vertex vert3, crTransform transf
 		clippedPoints[i * 3 + 2] = ProjectVertex(clippedPoints[i * 3 + 2]);
 	}
 
-	//Bottom
+	//Top
 	for(int i = 0; i < queueLength; ++i)
 	{
 		queueLength -= 1;
 		numClippedTriangles = ClipTriangle(	(vec3){ .x = 0, .y = 0, .z = 0 }, (vec3){ .x = 0, .y = 1.0, .z = 0 },
-							clippedPoints[headIndex & 127], // Instead of the modulo operator '%' we use a binary and '&' to save the division which would otherwise occur during a modulo(idk if the compiler optimzes this case if you don't do it this way)
-							clippedPoints[(headIndex + 1) & 127],
-							clippedPoints[(headIndex + 2) & 127],
-							&clippedPoints[(tailIndex + 1) & 127]);
-		headIndex = (headIndex + 3) & 127;
-		tailIndex = (tailIndex + numClippedTriangles * 3) & 127;
-		queueLength += numClippedTriangles;
-	}
-/*
-	//Top
-	for(int i = 0; i < queueLength; ++i)
-	{
-		queueLength--;
-		numClippedTriangles = ClipTriangle(	(vec3){ .x = 0, .y = screenHeight-1, .z = 0.0 }, (vec3){ .x = 0, .y = -1, .z = 0 },
-							clippedPoints[headIndex & 127], // Instead of the modulo operator '%' we use a binary and '&' to save the division which would otherwise occur during a modulo(idk if the compiler optimzes this case if you don't do it this way)
+							clippedPoints[headIndex & 127], // Instead of the modulo operator '%' we use a binary '&' to save the division which would otherwise occur during a modulo(idk if the compiler optimzes this case if you don't do it this way)
 							clippedPoints[(headIndex + 1) & 127],
 							clippedPoints[(headIndex + 2) & 127],
 							&clippedPoints[(tailIndex + 1) & 127]);
@@ -769,12 +757,12 @@ void RenderTriangle(vertex vert1, vertex vert2, vertex vert3, crTransform transf
 		queueLength += numClippedTriangles;
 	}
 
-	//Right
+	//Bottom
 	for(int i = 0; i < queueLength; ++i)
 	{
-		queueLength--;
-		numClippedTriangles = ClipTriangle(	(vec3){ .x = 0, .y = 0, .z = 0.0 }, (vec3){ .x = 1, .y = 0, .z = 0 },
-							clippedPoints[headIndex & 127], // Instead of the modulo operator '%' we use a binary and '&' to save the division which would otherwise occur during a modulo(idk if the compiler optimzes this case if you don't do it this way)
+		queueLength -= 1;
+		numClippedTriangles = ClipTriangle(	(vec3){ .x = 0, .y = screenHeight-1, .z = 0 }, (vec3){ .x = 0, .y = -1.0, .z = 0 },
+							clippedPoints[headIndex & 127], // Instead of the modulo operator '%' we use a binary '&' to save the division which would otherwise occur during a modulo(idk if the compiler optimzes this case if you don't do it this way)
 							clippedPoints[(headIndex + 1) & 127],
 							clippedPoints[(headIndex + 2) & 127],
 							&clippedPoints[(tailIndex + 1) & 127]);
@@ -786,9 +774,9 @@ void RenderTriangle(vertex vert1, vertex vert2, vertex vert3, crTransform transf
 	//Left
 	for(int i = 0; i < queueLength; ++i)
 	{
-		queueLength--;
-		numClippedTriangles = ClipTriangle(	(vec3){ .x = screenWidth-1, .y = 0, .z = 0.0 }, (vec3){ .x = -1, .y = 0, .z = 0 },
-							clippedPoints[headIndex & 127], // Instead of the modulo operator '%' we use a binary and '&' to save the division which would otherwise occur during a modulo(idk if the compiler optimzes this case if you don't do it this way)
+		queueLength -= 1;
+		numClippedTriangles = ClipTriangle(	(vec3){ .x = 0, .y = 0, .z = 0 }, (vec3){ .x = 1.0, .y = 0, .z = 0 },
+							clippedPoints[headIndex & 127], // Instead of the modulo operator '%' we use a binary '&' to save the division which would otherwise occur during a modulo(idk if the compiler optimzes this case if you don't do it this way)
 							clippedPoints[(headIndex + 1) & 127],
 							clippedPoints[(headIndex + 2) & 127],
 							&clippedPoints[(tailIndex + 1) & 127]);
@@ -796,18 +784,20 @@ void RenderTriangle(vertex vert1, vertex vert2, vertex vert3, crTransform transf
 		tailIndex = (tailIndex + numClippedTriangles * 3) & 127;
 		queueLength += numClippedTriangles;
 	}
-*/
-	int length = 0;
-	if(tailIndex < headIndex)
-		length = 128-headIndex + tailIndex + 1;
-	else
-		length = tailIndex - headIndex + 1;
-	length /= 3;
-/*	if(queueLength != length)
+
+	//Right
+	for(int i = 0; i < queueLength; ++i)
 	{
-		printf("Length is: %ld expected: %d\n", queueLength, length);
-//		return;
-	}*/
+		queueLength -= 1;
+		numClippedTriangles = ClipTriangle(	(vec3){ .x = screenWidth-1, .y = 0, .z = 0 }, (vec3){ .x = -1.0, .y = 0, .z = 0 },
+							clippedPoints[headIndex & 127], // Instead of the modulo operator '%' we use a binary '&' to save the division which would otherwise occur during a modulo(idk if the compiler optimzes this case if you don't do it this way)
+							clippedPoints[(headIndex + 1) & 127],
+							clippedPoints[(headIndex + 2) & 127],
+							&clippedPoints[(tailIndex + 1) & 127]);
+		headIndex = (headIndex + 3) & 127;
+		tailIndex = (tailIndex + numClippedTriangles * 3) & 127;
+		queueLength += numClippedTriangles;
+	}
 
 	for(int i = 0; i < queueLength; ++i)
 	{
@@ -817,9 +807,11 @@ void RenderTriangle(vertex vert1, vertex vert2, vertex vert3, crTransform transf
 
 		RasterizeTriangle(p1, p2, p3, fragmentProc);
 
+		#ifdef DEBUG
 		DrawLine(p1.position.x, p1.position.y, p2.position.x, p2.position.y);
 		DrawLine(p1.position.x, p1.position.y, p3.position.x, p3.position.y);
 		DrawLine(p3.position.x, p3.position.y, p2.position.x, p2.position.y);
+		#endif
 	}
 }
 

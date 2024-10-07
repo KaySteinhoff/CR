@@ -43,12 +43,12 @@ vertex model[] = {
 	{ .position = { .x =  0.5, .y = -0.5, .z =  0.5, .w = 1}, .uv = { .x = 1, .y = 0, .w = 0 } },
 	{ .position = { .x = -0.5, .y = -0.5, .z =  0.5, .w = 1}, .uv = { .x = 0, .y = 0, .w = 0 } },
 	/* TOP FACE */
-	{ .position = { .x = -0.5, .y = 0.5, .z = -0.5, .w = 1}, .uv = { .x = 0, .y = 0, .w = 0 } },
+	{ .position = { .x = -0.5, .y = 0.5, .z = -0.5, .w = 1}, .uv = { .x = 1, .y = 1, .w = 0 } },
 	{ .position = { .x =  0.5, .y = 0.5, .z =  0.5, .w = 1}, .uv = { .x = 0, .y = 0, .w = 0 } },
-	{ .position = { .x =  0.5, .y = 0.5, .z = -0.5, .w = 1}, .uv = { .x = 0, .y = 0, .w = 0 } },
+	{ .position = { .x =  0.5, .y = 0.5, .z = -0.5, .w = 1}, .uv = { .x = 0, .y = 1, .w = 0 } },
 
-	{ .position = { .x = -0.5, .y = 0.5, .z = -0.5, .w = 1}, .uv = { .x = 0, .y = 0, .w = 0 } },
-	{ .position = { .x = -0.5, .y = 0.5, .z =  0.5, .w = 1}, .uv = { .x = 0, .y = 0, .w = 0 } },
+	{ .position = { .x = -0.5, .y = 0.5, .z = -0.5, .w = 1}, .uv = { .x = 1, .y = 1, .w = 0 } },
+	{ .position = { .x = -0.5, .y = 0.5, .z =  0.5, .w = 1}, .uv = { .x = 1, .y = 0, .w = 0 } },
 	{ .position = { .x =  0.5, .y = 0.5, .z =  0.5, .w = 1}, .uv = { .x = 0, .y = 0, .w = 0 } },
 	/* BACK FACE */
 	{ .position = { .x = -0.5, .y = -0.5, .z = 0.5, .w = 1}, .uv = { .x = 1, .y = 0, .w = 0 } },
@@ -87,9 +87,9 @@ size_t simpleTex[8*8] = {
 
 size_t fragment(int x, int y, float u, float v, float w)
 {
-//	int tx = 8*u;
-//	int ty = 7*v;
-//	size_t bc = simpleTex[tx+(ty<<3)];
+	int tx = 8*u;
+	int ty = 7*v;
+	size_t bc = simpleTex[tx+(ty<<3)];
 /*	if(w < 0)
 		return 0xffff0000;
 	else if(w > 1)
@@ -100,11 +100,11 @@ size_t fragment(int x, int y, float u, float v, float w)
 	rgba[0] *= brightness;
 	rgba[1] *= brightness;
 	rgba[2] *= brightness;*/
-//	return bc;
+	return bc;
 //	if(u < 0.05 || u > 0.95 || v < 0.05 || v > 0.95)
 //		return 0xffffffff;
 //	return 0xff000000;
-	return 0xffff0000;
+//	return 0xffff0000;
 }
 
 int main(int argc, char **argv)
@@ -133,8 +133,8 @@ int main(int argc, char **argv)
 	SetRenderDestination(image.data);
 	start = clock();
 	crTransform transform = {
-		.position = { .x = 0, .y = 0, .z = 1.5},
-		.rotation = { .x = 0, .y = 45, .z =0 },
+		.position = { .x = 0, .y = 0, .z = 3},
+		.rotation = { .x = 45, .y = 30, .z =0 },
 		.scale = { .x = 1, .y = 1, .z = 1 }
 	};
 
@@ -148,9 +148,9 @@ int main(int argc, char **argv)
 		if(end-start < CLOCKS_PER_SEC * (1.0/30.0)) continue;
 
 		// Update transform and render image
-//		float elapsed = (float)(end-start)/CLOCKS_PER_SEC;
-//		transform.rotation.y += elapsed*50;
-//		transform.position.y -= elapsed*0.5;
+		float elapsed = (float)(end-start)/CLOCKS_PER_SEC;
+		transform.rotation.y += elapsed*50;
+//		transform.position.y += elapsed*0.5;
 
 		RenderModel(model, 36, transform, RENDER_MODE_MESH, fragment);
 

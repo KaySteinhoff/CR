@@ -120,7 +120,7 @@ int main(void)
 And that's it! Have fun with my barely functioning render lib!
 
 __*WARNING*__ <br>
-Don't move the mesh to close to the camera, it WILL crash the program as clipping isn't implemented yet.
+Clipping isn't fully implemented yet, due to some weird bug. The bug location is marked but I have no idea what is going wrong at this point in time.
 
 # Compile instructions(for gcc)
 
