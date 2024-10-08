@@ -119,6 +119,10 @@ int main(void)
 
 And that's it! Have fun with my barely functioning render lib!
 
+__**INFO**__
+
+Triangle strip are now supported again but need to have back face culling turned of. To see how to do this please have a look at the documentation <a href="https://github.com/KaySteinhoff/CR/wiki/Documentation">here</a>.
+
 # Compile instructions(for gcc)
 
 For Linux(in this folder setup):

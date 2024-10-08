@@ -62,16 +62,16 @@ vertex model[] = {
 
 /* Triangle strips don't work at the moment but I'm working on it ;) */
 vertex cubeTriStrip[] = {
-	{ .position = { .x = 0, .y = 0, .z = 0} },
-	{ .position = { .x = 1, .y = 0, .z = 0} },
-	{ .position = { .x = 0, .y = 0, .z = 1} },
-	{ .position = { .x = 1, .y = 0, .z = 1} },
-	{ .position = { .x = 0, .y = 1, .z = 1} },
-	{ .position = { .x = 1, .y = 1, .z = 1} },
-	{ .position = { .x = 0, .y = 1, .z = 0} },
-	{ .position = { .x = 1, .y = 1, .z = 0} },
-	{ .position = { .x = 0, .y = 0, .z = 0} },
-	{ .position = { .x = 1, .y = 0, .z = 0} }
+	{ .position = { .x = -0.5, .y = -0.5, .z = -0.5}, .uv = { .x = 0, .y = 0, .w = 0 } },
+	{ .position = { .x =  0.5, .y = -0.5, .z = -0.5}, .uv = { .x = 1, .y = 0, .w = 0 } },
+	{ .position = { .x = -0.5, .y = -0.5, .z =  0.5}, .uv = { .x = 0, .y = 1, .w = 0 } },
+	{ .position = { .x =  0.5, .y = -0.5, .z =  0.5}, .uv = { .x = 1, .y = 1, .w = 0 } },
+	{ .position = { .x = -0.5, .y =  0.5, .z =  0.5}, .uv = { .x = 0, .y = 0, .w = 0 } },
+	{ .position = { .x =  0.5, .y =  0.5, .z =  0.5}, .uv = { .x = 1, .y = 0, .w = 0 } },
+	{ .position = { .x = -0.5, .y =  0.5, .z = -0.5}, .uv = { .x = 0, .y = 1, .w = 0 } },
+	{ .position = { .x =  0.5, .y =  0.5, .z = -0.5}, .uv = { .x = 1, .y = 1, .w = 0 } },
+	{ .position = { .x = -0.5, .y = -0.5, .z = -0.5}, .uv = { .x = 0, .y = 0, .w = 0 } },
+	{ .position = { .x =  0.5, .y = -0.5, .z = -0.5}, .uv = { .x = 1, .y = 0, .w = 0 } },
 };
 
 size_t simpleTex[8*8] = {
@@ -85,7 +85,7 @@ size_t simpleTex[8*8] = {
 	0xffffffff, 0xffff0000, 0xff00ff00, 0xff0000ff, 0xffffff00, 0xff00ffff, 0xffff00ff, 0xff00ffff,
 };
 
-size_t fragment(int x, int y, float u, float v, float w)
+uint32_t fragment(int x, int y, float u, float v, float w)
 {
 	int tx = 8*u;
 	int ty = 7*v;
@@ -117,9 +117,11 @@ int main(int argc, char **argv)
 		return 2;
 	}
 	SetRenderDestination(image.data);
+	/* Uncomment this line to see the triangle strip */
+	//CREnable(CR_BACKFACE_CULLING);
 	start = clock();
 	crTransform transform = {
-		.position = { .x = 0, .y = 0, .z = 1.5},
+		.position = { .x = 0, .y = 0, .z = 3},
 		.rotation = { .x = 45, .y = 30, .z =0 },
 		.scale = { .x = 1, .y = 1, .z = 1 }
 	};
@@ -136,17 +138,12 @@ int main(int argc, char **argv)
 		// Update transform and render image
 		float elapsed = (float)(end-start)/CLOCKS_PER_SEC;
 		transform.rotation.y += elapsed*50;
-		transform.position.y -= elapsed*0.5;
 
+		// Mesh
 		RenderModel(model, 36, transform, RENDER_MODE_MESH, fragment);
+		// Triangle strip
+		//RenderModel(cubeTriStrip, 10, transform, RENDER_MODE_TRIANGLE_STRIP, fragment);
 
-//		transform.position.x = 1;
-//		transform.position.y = 0.5;
-//		RenderModel(model, 36, transform, RENDER_MODE_MESH, fragment); // We can use the same mesh and just change the transform(similar to OpenGL)
-
-		/* Of course don't forget to reset the transform */
-//		transform.position.x = 0;
-//		transform.position.y = 0;
 
 		start = end;
 		DrawRenderImage(image, 0, 0);
@@ -158,6 +155,6 @@ int main(int argc, char **argv)
 	freeRenderImage(image);
 	CleanupCR();
 	CloseCRWindow();
-
+	
 	return 0;
 }

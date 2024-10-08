@@ -10,9 +10,12 @@
 	#define bool _Bool
 #endif
 
-#include <stddef.h>
+#define CR_BACKFACE_CULLING 0x00000001
 
-typedef size_t (*CRFRAGMENTPROC)(int x, int y, float u, float v, float depth);
+#include <stddef.h>
+#include <stdint.h>
+
+typedef uint32_t (*CRFRAGMENTPROC)(int x, int y, float u, float v, float depth);
 
 typedef enum
 {
@@ -55,10 +58,12 @@ typedef struct
 }crTransform;
 
 bool InitCR(unsigned int width, unsigned int height, CR_RENDER_BUFFER_TYPE buffType, float fov, float nearPlane, float farPlane);
-void SetTimescale(float newScale);
 void SetRenderDestination(unsigned char *dest);
+void CREnable(uint32_t settingBit);
+
 unsigned char* RenderModel(vertex *model, size_t vertexCount, crTransform transform, CR_RenderMode renderMode, CRFRAGMENTPROC fragmentProc);
 void CRClearDepthBuffer(void);
+
 void CleanupCR(void);
 
 #endif
